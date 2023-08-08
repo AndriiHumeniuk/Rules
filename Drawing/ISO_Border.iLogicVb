@@ -1,0 +1,56 @@
+﻿Sub Main
+	If TypeOf ThisDoc.Document Is DrawingDocument Then
+		Dim dwgDoc As DrawingDocument = ThisDoc.Document
+		Dim dwgSheet As Sheet = dwgDoc.ActiveSheet
+		If IsNothing(dwgSheet.Border) Then
+			Call AddBorder(dwgDoc, dwgSheet)
+		Else
+			Call CheckBorder(dwgDoc, dwgSheet)
+		End If
+	End If
+End Sub
+
+Public Sub AddBorder(dwgDoc As DrawingDocument, dwgSheet As Sheet)
+	If dwgSheet.Orientation = 10242 Then 'Вертикальна орієнтація
+		If dwgSheet.Size = 9993 Then 'A0
+		ElseIf dwgSheet.Size = 9994 Then 'A1
+		ElseIf dwgSheet.Size = 9995 Then 'A2
+		ElseIf dwgSheet.Size = 9996 Then 'A3
+			dwgSheet.AddBorder(dwgDoc.BorderDefinitions.Item("ISO 5457 (A3)"))
+		ElseIf dwgSheet.Size = 9997 Then 'A4
+		Else
+		End If
+	Else 'Горизонтальна орієнтація
+		If dwgSheet.Size = 9993 Then 'A0
+		ElseIf dwgSheet.Size = 9994 Then 'A1
+		ElseIf dwgSheet.Size = 9995 Then 'A2
+		ElseIf dwgSheet.Size = 9996 Then 'A3
+		ElseIf dwgSheet.Size = 9997 Then 'A4
+		Else
+		End If
+	End If
+End Sub
+
+Public Sub CheckBorder(dwgDoc As DrawingDocument, dwgSheet As Sheet)
+	If dwgSheet.Orientation = 10242 Then 'Вертикальна орієнтація
+		If dwgSheet.Size = 9993 Then 'A0
+		ElseIf dwgSheet.Size = 9994 Then 'A1
+		ElseIf dwgSheet.Size = 9995 Then 'A2
+		ElseIf dwgSheet.Size = 9996 Then 'A3
+			If dwgSheet.Border.Name <> "ISO 5457 (A3)" Then
+				dwgSheet.Border.Delete
+				Call AddBorder(dwgDoc, dwgSheet)
+			End If
+		ElseIf dwgSheet.Size = 9997 Then 'A4
+		Else
+		End If
+	Else 'Горизонтальна орієнтація
+		If dwgSheet.Size = 9993 Then 'A0
+		ElseIf dwgSheet.Size = 9994 Then 'A1
+		ElseIf dwgSheet.Size = 9995 Then 'A2
+		ElseIf dwgSheet.Size = 9996 Then 'A3
+		ElseIf dwgSheet.Size = 9997 Then 'A4
+		Else
+		End If
+	End If
+End Sub

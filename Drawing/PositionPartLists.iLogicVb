@@ -1,0 +1,31 @@
+﻿Dim oDoc As Document = ThisDoc.Document
+Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+If TypeOf oDoc Is DrawingDocument Then
+	Dim oDrawDoc As DrawingDocument = oDoc
+	Dim PartList1 As PartsList 'Відомість виробів і матеріалів
+	Dim PartList2 As PartsList 'Зведена специфікація листового металу
+	Dim PartList3 As PartsList 'Зведена специфікація металопрокату
+	For Each oSheet As Sheet In oDrawDoc.Sheets
+		If oSheet.PartsLists.Count <> 0 Then
+			For Each oPartList As PartsList In oSheet.PartsLists
+				If oPartList.Title = "Відомість виробів і матеріалів" Then
+					PartList1 = oPartList
+				Else If oPartList.Title = "Зведена специфікація листового металу" Then
+					PartList2 = oPartList
+				Else If oPartList.Title = "Зведена специфікація металопрокату" Then
+					PartList3 = oPartList
+				End If
+			Next
+			If Not IsNothing(PartList1) And Not IsNothing(PartList2) Then
+				PartList2.Position = oTG.CreatePoint2d(PartList1.Position.X, PartList1.Position.Y + 
+									(PartList2.RangeBox.MaxPoint.Y - PartList2.RangeBox.MinPoint.Y))
+			End If
+			If Not IsNothing(PartList2) And Not IsNothing(PartList3) Then
+				PartList3.Position = oTG.CreatePoint2d(PartList2.Position.X, PartList2.Position.Y + 
+									(PartList3.RangeBox.MaxPoint.Y - PartList3.RangeBox.MinPoint.Y))
+			End If
+		End If
+	Next
+Else
+	MessageBox.Show("Дане правило використовуєтсья виключно для документів креслення.", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+End If

@@ -1,0 +1,267 @@
+﻿Class ConectBeam
+	
+	Dim Comp2 As ComponentOccurrence
+	
+Sub main()
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	Dim oDocInter As String = oDoc.InternalName
+	Dim aDef As AssemblyComponentDefinition = oDoc.ComponentDefinition
+	If oDoc.DocumentType = kPartDocumentObject Then
+		MessageBox.Show("This rule can only be run in an assembly file - exiting rule", "Excitech iLogic")
+	Return
+	End If
+	Dim aDefOccs As ComponentOccurrences
+	aDefOccs = aDef.Occurrences
+	
+	Dim Beam1 As ComponentOccurrence = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Вибіріть вашу колону...(Press ESC to cancel)")
+	If IsNothing(Beam1) Then Exit Sub ' If nothing gets selected then we're done
+	Dim oWP As WorkPlane = ThisApplication.CommandManager.Pick(Inventor.SelectionFilterEnum.kWorkPlaneFilter, "Вибиріть площину примикання...(Press ESC to cancel)")
+	If IsNothing(oWP) Then Exit Sub ' If nothing gets selected then we're done
+		
+	Dim oGroundDef As ComponentDefinition = oWP.Parent
+	Dim oGroundDoc As Document = oGroundDef.Document
+	Dim oGroundInter As String = oGroundDoc.InternalName
+	
+	Dim oBeamDef As PartComponentDefinition = Beam1.Definition
+	Dim oBeamFeat As PartFeatures = oBeamDef.Features
+	Dim oDerParam As DerivedParameterTables = oBeamDef.Parameters.DerivedParameterTables
+	Dim oBeamDoc As PartDocument = oBeamDef.Document
+	Dim oBeamPropSets As PropertySets = oBeamDef.Document.PropertySets
+	
+	Dim start_Beam As WorkPlaneProxy : Beam1.CreateGeometryProxy(oBeamDef.WorkPlanes.Item(4), start_Beam)
+	Dim end_Beam As WorkPlaneProxy : Beam1.CreateGeometryProxy(oBeamDef.WorkPlanes.Item(5), end_Beam)
+	Dim MeasStart As Double
+	Dim MeasEnd As Double
+	
+	Dim wpOrg As Point : Dim wpXaxis As UnitVector : Dim wpYaxis As UnitVector
+	If oDocInter = oGroundInter Then
+		Dim wp As WorkPlane = aDef.WorkPlanes.Item(oWP.Name)
+		wp.GetPosition(wpOrg, wpXaxis, wpYaxis)
+		MeasStart = ThisApplication.MeasureTools.GetMinimumDistance(wp, start_Beam)
+		MeasEnd = ThisApplication.MeasureTools.GetMinimumDistance(wp, end_Beam)
+	Else
+		Call SearchWP(aDefOccs, oGroundInter, 1)
+		Dim wp As WorkPlaneProxy : Comp2.CreateGeometryProxy(Comp2.Definition.WorkPlanes.Item(oWP.Name), wp)
+		wp.GetPosition(wpOrg, wpXaxis, wpYaxis)
+		MeasStart = ThisApplication.MeasureTools.GetMinimumDistance(wp, start_Beam)
+		MeasEnd = ThisApplication.MeasureTools.GetMinimumDistance(wp, end_Beam)
+	End If
+	Dim MinSize As Double = MinOfMany(MeasStart, MeasEnd)
+	Dim MaxSize As Double = MaxOfMany(MeasStart, MeasEnd)
+	
+	Dim org As WorkPointProxy : Beam1.CreateGeometryProxy(oBeamDef.WorkPoints.Item(1), org)
+
+	Dim oTranslate As Vector = org.Point.VectorTo(wpOrg)
+
+	Dim NEWpoint As Point = oBeamDef.WorkPoints.Item(1).Point  
+	
+	'Adjust for part orientation in assembly context
+	Dim asmOrg As Point = aDef.WorkPoints.Item(1).Point
+	Dim asmXvector As Vector = aDef.WorkAxes.Item(1).Line.Direction.AsVector()
+	Dim asmYvector As Vector = aDef.WorkAxes.Item(2).Line.Direction.AsVector()
+	Dim asmZvector As Vector = aDef.WorkAxes.Item(3).Line.Direction.AsVector()
+	Dim occOrg As Point = org.Point
+	Dim occXaxisProxy As WorkAxisProxy  : Beam1.CreateGeometryProxy(oBeamDef.WorkAxes.Item(1), occXaxisProxy) 
+	Dim occXvector As Vector = occXaxisProxy.Line.Direction.AsVector()
+	Dim occYaxisProxy As WorkAxisProxy  : Beam1.CreateGeometryProxy(oBeamDef.WorkAxes.Item(2), occYaxisProxy) 
+	Dim occYvector As Vector = occYaxisProxy.Line.Direction.AsVector()
+	Dim occZaxisProxy As WorkAxisProxy  : Beam1.CreateGeometryProxy(oBeamDef.WorkAxes.Item(3), occZaxisProxy) 
+	Dim occZvector As Vector = occZaxisProxy.Line.Direction.AsVector()
+	'Set transformation Matrix
+	Dim Orientation As Matrix = Beam1.Transformation : Orientation.SetToAlignCoordinateSystems(occOrg, occXvector, occYvector, occZvector, asmOrg, asmXvector, asmYvector, asmZvector)
+	'Adjust unit vectors for matrix
+	oTranslate.TransformBy(Orientation) : NEWpoint.TranslateBy(oTranslate)
+	wpXaxis.TransformBy(Orientation)
+	wpYaxis.TransformBy(Orientation)
+		
+	Dim fso = ThisApplication.FileManager.FileSystemObject
+		
+	Dim oBeamFullName As String = oBeamDef.Document.FullFileName
+	Dim oBeamName As String = oBeamDef.Document.DisplayName
+	Dim oBeamPath As String = Left(oBeamFullName, Len(oBeamFullName) -Len(oBeamName) -1)
+	Dim BeamAssembNumb As String = InStrRev(oBeamPath, "\", -1)
+	BeamAssembName = Right(oBeamPath, Len(oBeamPath) -BeamAssembNumb)
+	Dim codeBeamPath As String = BeamAssembName.Substring(0, BeamAssembName.IndexOf(" "))
+	
+	Dim wpYZ_Beam As WorkPlane = oBeamDef.WorkPlanes.Item(1) 'Component YZ Plane (Beam1)
+	Dim wpXY_Beam As WorkPlane = oBeamDef.WorkPlanes.Item(3) 'Component XY Plane (Beam1)
+	Dim axeX_Beam As WorkAxis = oBeamDef.WorkAxes.Item(3) 'Component Z Axe (Beam1)
+	
+	oBeamInventorSummaryInformation = oBeamPropSets.Item("Inventor Summary Information")
+	oBeamDesignTrackingPropertySet = oBeamPropSets.Item("Design Tracking Properties")
+	oBeamCustomPropertySet = oBeamPropSets.Item("Inventor User Defined properties")
+	oBeamUserParams = oBeamDef.Parameters.UserParameters
+	
+	oStandBeam = oBeamDesignTrackingPropertySet.Item("Catalog Web Link")
+	
+	If oStandBeam.Value = "DIN 1025-2" Or oStandBeam.Value = "DIN 1025-4" Or oStandBeam.Value = "DIN 1025-5" Or oStandBeam.Value = "Euronorm 53-62" Then
+		H_Beam1 = oBeamUserParams.Item("ParH")
+		W_Beam1 = oBeamUserParams.Item("b")
+		t_Beam1 = oBeamUserParams.Item("t1")
+		L_Beam1 = oBeamUserParams.Item("G_L")
+	ElseIf oStandBeam.Value = "ДСТУ 8768" Then
+		H_Beam1 = oBeamUserParams.Item("ParH")
+		W_Beam1 = oBeamUserParams.Item("b")
+		t_Beam1 = oBeamUserParams.Item("s_")
+		L_Beam1 = oBeamUserParams.Item("G_L")
+	ElseIf oStandBeam.Value = "ДСТУ 8940" Or oStandBeam.Value = "ДСТУ EN 10210-2" Or oStandBeam.Value = "ДСТУ Б В.2.6-8-95" Then
+		H_Beam1 = oBeamUserParams.Item("G_H")
+		W_Beam1 = oBeamUserParams.Item("G_W")
+		t_Beam1 = oBeamUserParams.Item("G_T")
+		L_Beam1 = oBeamUserParams.Item("G_L")
+	End If
+			
+	WriteKnot = "Приклад: База Колони К1"
+	Do While WriteKnot = "Приклад: База Колони К1"
+		WriteKnot = InputBox("Ведіть в поле воду ім'я вузла", "Позначення вузла", "Приклад: База Колони К1")
+		If WriteKnot = vbNullString Then Exit Sub
+	Loop
+	
+	Dim DesigneKnot As String = "\\Comp59\Work SP\Storage data\iCopy family\Конструктивні вузли\База колони\Опорна плита"
+	Dim NewKnotName As String = codeBeamPath & " " & WriteKnot & ".iam"
+	Dim copyKnot As String = DesigneKnot & "\01.01.000 Knot.iam"
+	Dim newKnot As String = oBeamPath & "\" & NewKnotName
+	Dim oAssKnot As AssemblyDocument
+	Try
+		oAssKnot = ThisApplication.Documents.Open(newKnot, False)
+		oAssKnot.Close
+	Catch
+		fso.copyFile(copyKnot, newKnot, True)
+	End Try
+	
+	oAssBeam = oBeamPath & "\" & BeamAssembName & ".iam"
+	
+	Dim oAsm As AssemblyDocument = ThisApplication.Documents.Open(oAssBeam, False)
+	Dim oOcc_Knot As ComponentOccurrence
+	Dim oAsmCompDef As AssemblyComponentDefinition = oAsm.ComponentDefinition
+	
+	Dim oTG As TransientGeometry
+	oTG = ThisApplication.TransientGeometry
+	Dim oMatrix As Matrix
+	oMatrix = oTG.CreateMatrix
+	
+	'Make Plane:
+	Dim NEWwp As WorkPlane
+	'Check for existing
+	For Each wpln As WorkPlane In oBeamDef.WorkPlanes
+		If wpln.Name = oWP.Name & "(" & oGroundDoc.DisplayName & ")" Then
+			If wpln.DefinitionType = WorkPlaneDefinitionEnum.kFixedWorkPlane Then
+				wpln.SetFixed(NEWpoint, wpXaxis, wpYaxis)
+				GoTo Update
+			Else
+				MessageBox.Show("There is a Plane using the name: " & wpln.Name & _
+				" that was not created as a fixed plane.  This rule will terminate.", "Name is used")
+				GoTo Update
+			End If
+		End If
+	Next
+	
+	NEWwp = oBeamDef.WorkPlanes.AddFixed(NEWpoint, wpXaxis, wpYaxis, False) : NEWwp.Name = oWP.Name & "(" & oGroundDoc.DisplayName & ")" : NEWwp.Visible = False
+	oDerParam.Add2(newKnot, Thick_Plate1)
+	If L_Beam1.Value < MaxSize Then
+		Dim ExSize As String
+		Dim TParam As DerivedParameter = oBeamDef.Parameters.DerivedParameterTables.Item(1).LinkedParameters.Item(1)
+		If MeasStart < MeasEnd Then
+			ExSize = (MinSize * 10) & " + "
+			oBeamUserParams.Item("G_OFFSET_START").Value = ExSize & TParam.Name
+		Else
+			ExSize = (MinSize * 10) & " + "
+			oBeamUserParams.Item("G_OFFSET_END").Value = MinSize & TParam.Name
+		End If
+	End If
+	If oDerParam.Count > 1 Then
+		Dim IndParam As String = oDerParam.Count - 1
+		OffWP_Knot = oBeamDef.WorkPlanes.AddByPlaneAndOffset(NEWwp, "Thick_Plate1_" & IndParam, False)
+		OffWP_Knot.Name = "Площина фланця_" & IndParam & "(" & oGroundDoc.DisplayName & ")" : OffWP_Knot.Visible = False
+	Else
+		OffWP_Knot = oBeamDef.WorkPlanes.AddByPlaneAndOffset(NEWwp, "Thick_Plate1", False)
+		OffWP_Knot.Name = "Площина фланця" & "(" & oGroundDoc.DisplayName & ")" : OffWP_Knot.Visible = False
+	End If
+	oSurfaceBody = oBeamFeat.ExtrudeFeatures.Item(1).SurfaceBodies(1)
+	Dim oSplit As SplitFeature = oBeamFeat.SplitFeatures.TrimSolid(OffWP_Knot, oSurfaceBody, True)
+		
+	oAssKnot = ThisApplication.Documents.Open(newKnot, False)
+	
+	Dim oCompDefKnot As AssemblyComponentDefinition = oAssKnot.ComponentDefinition
+	Dim oPropSetsKnot As PropertySets = oCompDefKnot.Document.PropertySets
+	oCustPropKnot = oPropSetsKnot.Item("Inventor User Defined properties")
+	
+	oCustPropKnot.Item("Standart").Value = oStandBeam.Value
+	oCustPropKnot.Item("InterNameObject").Value = oGroundInter
+	oCustPropKnot.Item("FullNamePlane").Value = oWP.Name
+	oCustPropKnot.Item("InterNameColon").Value = oBeamDoc.InternalName
+	
+	Dim oUserParKnot As UserParameters	
+	oUserParKnot = oCompDefKnot.Parameters.UserParameters
+	
+	oUserParKnot.Item("Height_Beam1").Value = H_Beam1.Value
+	oUserParKnot.Item("Width_Beam1").Value = W_Beam1.Value
+	oUserParKnot.Item("Thick1_Beam1").Value = t_Beam1.Value
+	
+	Dim oViewKnot As Boolean = True
+	
+	For Each oAsmOcc In oAsmCompDef.Occurrences
+        If oAsmOcc.Name.Contains(WriteKnot) Then
+            oViewKnot = False
+			Exit For
+		End If
+	Next
+	
+	If oViewKnot = True Then
+		oOcc_Knot = oAsmCompDef.Occurrences.Add(newKnot, oMatrix)
+		
+		Dim proxyYZ_Knot As WorkPlaneProxy
+		Dim proxyXZ_Knot As WorkPlaneProxy
+		Dim proxyXY_Knot As WorkPlaneProxy
+		Dim proxyYZ_Beam As WorkPlaneProxy
+		Dim proxyNEW_Beam As WorkPlaneProxy
+		Dim proxyAxis_Beam As WorkAxisProxy
+		
+		Dim wpYZ_Knot As WorkPlane = oCompDefKnot.WorkPlanes.Item(1) 'Component YZ Plane (Knot)
+		Dim wpXZ_Knot As WorkPlane = oCompDefKnot.WorkPlanes.Item(2) 'Component XZ Plane (Knot)
+		Dim wpXY_Knot As WorkPlane = oCompDefKnot.WorkPlanes.Item(3) 'Component XY Plane (Knot)
+		
+		Call oOcc_Knot.CreateGeometryProxy(wpYZ_Knot, proxyYZ_Knot)
+		Call oOcc_Knot.CreateGeometryProxy(wpXZ_Knot, proxyXZ_Knot)
+		Call oOcc_Knot.CreateGeometryProxy(wpXY_Knot, proxyXY_Knot)
+		Call Beam1.CreateGeometryProxy(wpYZ_Beam, proxyYZ_Beam)
+		Call Beam1.CreateGeometryProxy(NEWwp, proxyNEW_Beam)
+		Call Beam1.CreateGeometryProxy(axeX_Beam, proxyAxis_Beam)
+		
+		Call oAsmCompDef.Constraints.AddFlushConstraint(proxyXY_Knot, proxyYZ_Beam, 0)
+		Call oAsmCompDef.Constraints.AddFlushConstraint(proxyXZ_Knot, proxyNEW_Beam, 0)
+		Call oAsmCompDef.Constraints.AddMateConstraint(proxyYZ_Knot, proxyAxis_Beam, 0)
+	
+	End If
+		
+	oAssKnot.Save
+	oAssKnot.Close
+		
+	oAsm.Save
+	oAsm.Close
+		
+	Update: InventorVb.DocumentUpdate()
+		
+End Sub
+
+Public Sub SearchWP(aDefOccs As ComponentOccurrences, oGroundInter As String, Level As Integer)
+	If IsNothing(Comp2) Then
+		For Each oOcc As ComponentOccurrence In aDefOccs
+			Try
+				Dim oOccDef As ComponentDefinition = oOcc.Definition
+				Dim oOccDoc As Document = oOccDef.Document
+				If oOccDoc.InternalName = oGroundInter Then
+					Comp2 = oOcc
+					Exit For
+				Else
+					If oOcc.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+						Call SearchWP(oOcc.SubOccurrences, oGroundInter, Level + 1)
+					End If
+				End If
+			Catch
+			End Try
+		Next
+	End If
+End Sub
+
+End Class

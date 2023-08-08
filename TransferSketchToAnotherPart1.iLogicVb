@@ -1,0 +1,37 @@
+﻿Sub Main
+	Dim oAsm As AssemblyDocument = ThisApplication.ActiveDocument
+	Dim oAsmComp As AssemblyComponentDefinition = oAsm.ComponentDefinition
+	Dim oOcc As ComponentOccurrence
+	oOcc = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Select parth with sketch")
+	Dim oPartComp As PartComponentDefinition
+	oPartComp = oOcc.Definition
+	If oOcc Is Nothing Then Return
+		
+	Dim oSketch As Sketch = Nothing
+	Dim SketchList As New ArrayList
+	For Each oSketchTemp As Sketch In oPartComp.Sketches
+			SketchList.Add(oSketchTemp.Name)
+	Next
+	If SketchList.Count = 0 Then Return
+	Dim sSketch As String = InputListBox("Sketches found on the selected part", SketchList, "", "Selected Scetch To Copy", "Sketches Found")
+	If sSketch = "" Then Return
+	oSketch = oPartComp.Sketches.Item(sSketch)
+	
+		
+	Dim oOcc2 As ComponentOccurrence
+	oOcc2 = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Select part to copy sketch to")
+	Dim oPartComp2 As PartComponentDefinition
+	oPartComp2 = oOcc2.Definition
+	Dim WPList As New ArrayList
+	For Each oWp As WorkPlane In oPartComp2.WorkPlanes
+		WPList.Add(oWp.Name)
+	Next
+	Dim WP As String = InputListBox("Work planes found on thee selected part", WPList, "",
+		"Select a work plane to create sketch", "Work Planes Found")
+	If WP = "" Then Return
+	Dim oWP2 As WorkPlane = oPartComp2.WorkPlanes.Item(WP)
+	Dim oSketches2 As PlanarSketches = oPartComp2.Sketches
+	Dim oSketch2 As Sketch = oSketches2.Add(oWP2)
+	
+	oSketch.CopyContentsTo(oSketch2)
+End Sub

@@ -1,0 +1,463 @@
+﻿' <FireOthersImmediately>False</FireOthersImmediately>
+Class UpdateKnot
+		
+	Dim Part1 As ComponentOccurrence
+	Dim Part2 As ComponentOccurrence
+	Dim oPart1Def As PartComponentDefinition
+	Dim oPart2Def As PartComponentDefinition
+	
+	Dim oPart1Name As String
+	Dim oPart2Name As String
+	Dim oStandPart1 As String
+	Dim oStandPart2 As String
+	Dim oPart1Path As String
+	Dim oPart2Path As String
+	Dim codePart1Path As String
+	Dim codePart2Path As String
+	
+	Dim H_Part1 As Double
+	Dim W_Part1 As Double
+	Dim t_Part1 As Double
+	Dim t2_Part1 As Double
+	Dim L_Part1 As Double
+	Dim H_Part2 As Double
+	Dim W_Part2 As Double
+	Dim t_Part2 As Double
+	Dim t2_Part2 As Double
+	Dim L_Part2 As Double
+	
+	Dim oInterPart1 As String
+	Dim oInterPart2 As String
+	
+Sub main()
+	oDoc = ThisApplication.ActiveDocument
+	Dim aDef As AssemblyComponentDefinition = oDoc.ComponentDefinition
+	If oDoc.DocumentType = kPartDocumentObject Then
+		MessageBox.Show("This rule can only be run in an assembly file - exiting rule", "Excitech iLogic")
+	Return
+	End If
+	Dim oOccs As ComponentOccurrences : oOccs = aDef.Occurrences
+	
+	Dim Knot As ComponentOccurrence = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Вибіріть існуючий вузол...(Press ESC to cancel)")
+	If IsNothing(Knot) Then Exit Sub ' If nothing gets selected then we're done
+		
+	Dim KnotDef As AssemblyComponentDefinition = Knot.Definition
+	Dim KnotDoc As AssemblyDocument = KnotDef.Document
+	Dim KnotPath As String = KnotDoc.FullFileName
+	Dim KnotInterName As String = KnotDoc.InternalName
+	Dim oUserParKnot As UserParameters	
+	oUserParKnot = KnotDef.Parameters.UserParameters
+	Dim KnotPropSets As PropertySets = KnotDoc.PropertySets
+	oCustPropKnot = KnotPropSets.Item("Inventor User Defined properties")
+	
+	If KnotInterName = "{809FA86B-4D66-CE26-2223-C2BA8EFE9B39}" Then
+		'[01.01.000 Knot(Опорна база колони)
+		Dim InterPart1 As String = oCustPropKnot.Item("InterNameColon").Value
+		Call SetsPart1(oOccs, InterPart1, 1)
+		If oInterPart1 <> InterPart1 Then
+			MessageBox.Show("В збірці відсутній елемент колони для оновлення " _
+			& "вузла - " & KnotDoc.DisplayName & ".", "Помилка!")
+			Exit Sub
+		End If
+		Dim oPart1UserParams As UserParameters = oPart1Def.Parameters.UserParameters
+		If oPart1UserParams.Item("G_OFFSET_START").Expression.Contains("Thick_Plate1") Then
+			oPart1UserParams.Item("G_OFFSET_START").Value = 0
+		Else
+			oPart1UserParams.Item("G_OFFSET_END").Value = 0
+		End If
+							
+		Dim start_Beam As WorkPlaneProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPlanes.Item(4), start_Beam)
+		Dim end_Beam As WorkPlaneProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPlanes.Item(5), end_Beam)
+		Dim MeasStart As Double
+		Dim MeasEnd As Double
+		
+		Dim wpOrg As Point : Dim wpXaxis As UnitVector : Dim wpYaxis As UnitVector
+		Dim oNamePlane As String = oCustPropKnot.Item("FullNamePlane").Value
+		Dim InterPart2 As String = oCustPropKnot.Item("InterNameObject").Value
+		Dim oNamePart2 As String
+		
+		If oDoc.InternalName = InterPart2 Then
+			Dim wp As WorkPlane = aDef.WorkPlanes.Item(oNamePlane)
+			oNamePart2 = aDef.Document.DisplayName
+			wp.GetPosition(wpOrg, wpXaxis, wpYaxis)
+			MeasStart = ThisApplication.MeasureTools.GetMinimumDistance(wp, start_Beam)
+			MeasEnd = ThisApplication.MeasureTools.GetMinimumDistance(wp, end_Beam)
+		Else
+			Call SetsPart2(oOccs, InterPart2, 1)
+			If oInterPart2 <> InterPart2 Then
+				MessageBox.Show("В збірці відсутній елемент площини для оновлення " _
+				& "вузла - " & KnotDoc.DisplayName & ".", "Помилка!")
+				Exit Sub
+			End If
+			Dim wp As WorkPlaneProxy : Part2.CreateGeometryProxy(oPart2Def.WorkPlanes.Item(oNamePlane), wp)
+			oNamePart2 = oPart2Def.Document.DisplayName
+			wp.GetPosition(wpOrg, wpXaxis, wpYaxis)
+			MeasStart = ThisApplication.MeasureTools.GetMinimumDistance(wp, start_Beam)
+			MeasEnd = ThisApplication.MeasureTools.GetMinimumDistance(wp, end_Beam)
+		End If
+		Dim MinSize As Double = MinOfMany(MeasStart, MeasEnd)
+		Dim MaxSize As Double = MaxOfMany(MeasStart, MeasEnd)
+
+		Dim org As WorkPointProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPoints.Item(1), org)
+	
+		Dim oTranslate As Vector = org.Point.VectorTo(wpOrg)
+	
+		Dim NEWpoint As Point = oPart1Def.WorkPoints.Item(1).Point  
+		
+		'Adjust for part orientation in assembly context
+		Dim asmOrg As Point = aDef.WorkPoints.Item(1).Point
+		Dim asmXvector As Vector = aDef.WorkAxes.Item(1).Line.Direction.AsVector()
+		Dim asmYvector As Vector = aDef.WorkAxes.Item(2).Line.Direction.AsVector()
+		Dim asmZvector As Vector = aDef.WorkAxes.Item(3).Line.Direction.AsVector()
+		Dim occOrg As Point = org.Point
+		Dim occXaxisProxy As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(1), occXaxisProxy) 
+		Dim occXvector As Vector = occXaxisProxy.Line.Direction.AsVector()
+		Dim occYaxisProxy As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(2), occYaxisProxy) 
+		Dim occYvector As Vector = occYaxisProxy.Line.Direction.AsVector()
+		Dim occZaxisProxy As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(3), occZaxisProxy) 
+		Dim occZvector As Vector = occZaxisProxy.Line.Direction.AsVector()
+		'Set transformation Matrix
+		Dim Orientation As Matrix = Part1.Transformation : Orientation.SetToAlignCoordinateSystems(occOrg, occXvector, occYvector, occZvector, asmOrg, asmXvector, asmYvector, asmZvector)
+		'Adjust unit vectors for matrix
+		oTranslate.TransformBy(Orientation) : NEWpoint.TranslateBy(oTranslate)
+		wpXaxis.TransformBy(Orientation)
+		wpYaxis.TransformBy(Orientation)
+		
+		'Make Plane:
+		Dim NEWwp As WorkPlane
+		'Check for existing
+		For Each wpln As WorkPlane In oPart1Def.WorkPlanes
+			If wpln.Name = oNamePlane & "(" & oNamePart2 & ")" Then
+				If wpln.DefinitionType = WorkPlaneDefinitionEnum.kFixedWorkPlane Then
+					wpln.SetFixed(NEWpoint, wpXaxis, wpYaxis)
+				Else
+					MessageBox.Show("There is a Plane using the name: " & wpln.Name & _
+					" that was not created as a fixed plane.  This rule will terminate.", "Name is used")
+				End If
+			End If
+		Next
+		
+		Dim Thick_Plate1 As DerivedParameter = oPart1Def.Parameters.DerivedParameterTables.Item(1).LinkedParameters.Item(1)
+		
+		If L_Part1 < MaxSize Then
+			Dim ExSize As String
+			If MeasStart < MeasEnd Then
+				ExSize = String.Concat((oPart1UserParams.Item("G_OFFSET_START").Value - (MinSize * 10)), " + ")
+				oPart1UserParams.Item("G_OFFSET_START").Expression = ExSize & Thick_Plate1.Name
+			Else
+				ExSize = String.Concat((oPart1UserParams.Item("G_OFFSET_END").Value + (MinSize * 10)), " - ")
+				oPart1UserParams.Item("G_OFFSET_END").Expression = ExSize & Thick_Plate1.Name
+			End If
+		End If
+		
+		OpenKnot = ThisApplication.Documents.Open(KnotPath, False)
+		Dim OpKnotDef As AssemblyComponentDefinition = OpenKnot.ComponentDefinition
+		Dim KnotParam As UserParameters
+		KnotParam = OpKnotDef.Parameters.UserParameters
+		
+		KnotParam.Item("Height_Beam1").Value = H_Part1
+		KnotParam.Item("Width_Beam1").Value = W_Part1
+		KnotParam.Item("Thick1_Beam1").Value = t_Part1
+		Dim iLogicAuto As Object 
+		Dim oRule As Object
+		iLogicAuto = iLogicVb.Automation 
+		Try
+			oRule = iLogicAuto.GetRule(OpenKnot, "Form_Knot")
+			iLogicAuto.RunRuleDirect(oRule)
+		Catch
+			MsgBox("There needs to be a rule called 'Form_Knot' in the iCopy assembly to run....", 64, "Excitech iLogic")
+		End Try
+		OpenKnot.Close']	
+	ElseIf KnotInterName = "{A8E8FC48-413C-FDA4-5425-F5AC52434005}" Then ' 02.01.000 Knot		
+		'[02.01.000 Knot(Колона-балка(фланець))
+		Dim InterPart1 As String = oCustPropKnot.Item("InterNameColon").Value
+		Call SetsPart1(oOccs, InterPart1, 1)
+		If oInterPart1 <> InterPart1 Then
+			MessageBox.Show("В збірці відсутній елемент колони для оновлення вузла.", "Помилка!")
+			Exit Sub
+		End If
+		
+		Dim InterPart2 As String = oCustPropKnot.Item("InterNameBeam").Value
+		Call SetsPart2(oOccs, InterPart2, 1)
+		If oInterPart2 <> InterPart2 Then
+			MessageBox.Show("В збірці відсутній елемент балки для оновлення вузла.", "Помилка!")
+			Exit Sub
+		End If
+		
+		'[<<<<<<<<<<<Update Axes in components>>>>>>>>>>
+		Dim axiX_Part1 As WorkAxisProxy : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(1), axiX_Part1)
+		Dim axiZ_Part1 As WorkAxisProxy : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(3), axiZ_Part1)
+		Dim org_Part1 As WorkPointProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPoints.Item(1), org_Part1)
+		Dim wpStart_Part1 As WorkPlaneProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPlanes.Item(4), wpStart_Part1)
+		Dim wpEnd_Part1 As WorkPlaneProxy : Part1.CreateGeometryProxy(oPart1Def.WorkPlanes.Item(5), wpEnd_Part1)
+		
+		Dim axiX_Part2 As WorkAxisProxy : Part2.CreateGeometryProxy(oPart2Def.WorkAxes.Item(1), axiX_Part2)
+		Dim axiZ_Part2 As WorkAxisProxy : Part2.CreateGeometryProxy(oPart2Def.WorkAxes.Item(3), axiZ_Part2)
+		Dim org_Part2 As WorkPointProxy : Part2.CreateGeometryProxy(oPart2Def.WorkPoints.Item(1), org_Part2)
+		Dim wpStart_Part2 As WorkPlaneProxy : Part2.CreateGeometryProxy(oPart2Def.WorkPlanes.Item(4), wpStart_Part2)
+		Dim wpEnd_Part2 As WorkPlaneProxy : Part2.CreateGeometryProxy(oPart2Def.WorkPlanes.Item(5), wpEnd_Part2)
+		
+		Dim MeasX As Double = ThisApplication.MeasureTools.GetAngle(axiX_Part1, axiX_Part2)
+		Dim MeasZ As Double = ThisApplication.MeasureTools.GetAngle(axiZ_Part1, axiZ_Part2)
+		Dim measuStart As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Part2, axiZ_Part1)
+		Dim measuEnd As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Part2, axiZ_Part1)
+		Dim measuStartHigt As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Part2, aDef.WorkPlanes.Item(2))
+		Dim measuEndHigt As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Part2, aDef.WorkPlanes.Item(2))
+		Dim PosBeam As Boolean
+		If measuStart < measuEnd Then
+			If measuStartHigt <= measuEndHigt Then
+				PosBeam = True 'Балка до верху
+			Else
+				PosBeam = False 'Балка до низу
+			End If
+		Else
+			If measuEndHigt <= measuStartHigt Then
+				PosBeam = True 'Балка до верху
+			Else
+				PosBeam = False 'Балка до низу
+			End If
+		End If
+		
+		Dim asmOrg As Point = aDef.WorkPoints.Item(1).Point
+		Dim asmXvector As Vector = aDef.WorkAxes.Item(1).Line.Direction.AsVector()
+		Dim asmYvector As Vector = aDef.WorkAxes.Item(2).Line.Direction.AsVector()
+		Dim asmZvector As Vector = aDef.WorkAxes.Item(3).Line.Direction.AsVector()
+		
+	'[	Set AxiZ Beam in Colon
+		Dim axOrg_B As Point = axiZ_Part2.Line.RootPoint
+		Dim Axes_B As UnitVector = axiZ_Part2.Line.Direction
+	
+		Dim oTranslate_C As Vector = org_Part1.Point.VectorTo(axOrg_B)
+	
+		Dim NEWpoint_C As Point = oPart1Def.WorkPoints.Item(1).Point  
+		
+		Dim occOrg_C As Point = org_Part1.Point
+		Dim occXaxisProxy_C As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(1), occXaxisProxy_C) 
+		Dim occXvector_C As Vector = occXaxisProxy_C.Line.Direction.AsVector()
+		Dim occYaxisProxy_C As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(2), occYaxisProxy_C) 
+		Dim occYvector_C As Vector = occYaxisProxy_C.Line.Direction.AsVector()
+		Dim occZaxisProxy_C As WorkAxisProxy  : Part1.CreateGeometryProxy(oPart1Def.WorkAxes.Item(3), occZaxisProxy_C) 
+		Dim occZvector_C As Vector = occZaxisProxy_C.Line.Direction.AsVector()
+		
+		Dim Orientation_C As Matrix = Part1.Transformation : Orientation_C.SetToAlignCoordinateSystems(occOrg_C, _
+		occXvector_C, occYvector_C, occZvector_C, asmOrg, asmXvector, asmYvector, asmZvector)
+		
+		oTranslate_C.TransformBy(Orientation_C) : NEWpoint_C.TranslateBy(oTranslate_C)
+		Axes_B.TransformBy(Orientation_C)
+		
+		Dim NEWaxi_C As WorkAxis
+		
+		For Each axiln_C As WorkAxis In oPart1Def.WorkAxes
+			If axiln_C.Name = "Ось Z(" & oPart2Name & ")" Then
+				If axiln_C.DefinitionType = WorkAxisDefinitionEnum.kFixedWorkAxis Then
+					axiln_C.SetFixed(NEWpoint_C, Axes_B)
+				Else
+					MessageBox.Show("There is a Plane using the name: " & axiln_C.Name & _
+					" that was not created as a fixed plane.  This rule will terminate.", "Name is used")
+				End If
+			End If
+		Next']
+		
+	'[	Set AxiZ Colon in Beam
+		Dim axOrg_C As Point = axiZ_Part1.Line.RootPoint
+		Dim Axes_C As UnitVector = axiZ_Part1.Line.Direction
+	
+		Dim oTranslate_B As Vector = org_Part2.Point.VectorTo(axOrg_C)
+	
+		Dim NEWpoint_B As Point = oPart2Def.WorkPoints.Item(1).Point
+		
+		Dim occOrg_B As Point = org_Part2.Point
+		Dim occXaxisProxy_B As WorkAxisProxy  : Part2.CreateGeometryProxy(oPart2Def.WorkAxes.Item(1), occXaxisProxy_B) 
+		Dim occXvector_B As Vector = occXaxisProxy_B.Line.Direction.AsVector()
+		Dim occYaxisProxy_B As WorkAxisProxy  : Part2.CreateGeometryProxy(oPart2Def.WorkAxes.Item(2), occYaxisProxy_B) 
+		Dim occYvector_B As Vector = occYaxisProxy_B.Line.Direction.AsVector()
+		Dim occZaxisProxy_B As WorkAxisProxy  : Part2.CreateGeometryProxy(oPart2Def.WorkAxes.Item(3), occZaxisProxy_B) 
+		Dim occZvector_B As Vector = occZaxisProxy_B.Line.Direction.AsVector()
+		
+		Dim Orientation_B As Matrix = Part2.Transformation : Orientation_B.SetToAlignCoordinateSystems(occOrg_B, _
+		occXvector_B, occYvector_B, occZvector_B, asmOrg, asmXvector, asmYvector, asmZvector)
+		
+		oTranslate_B.TransformBy(Orientation_B) : NEWpoint_B.TranslateBy(oTranslate_B)
+		Axes_C.TransformBy(Orientation_B)
+		
+		Dim NEWaxi_B As WorkAxis
+		
+		For Each axiln_B As WorkAxis In oPart2Def.WorkAxes
+			If axiln_B.Name = "Ось Z(" & oPart1Name & ")" Then
+				If axiln_B.DefinitionType = WorkAxisDefinitionEnum.kFixedWorkAxis Then
+					axiln_B.SetFixed(NEWpoint_B, Axes_C)
+				Else
+					MessageBox.Show("There is a Plane using the name: " & axiln_B.Name & _
+					" that was not created as a fixed plane.  This rule will terminate.", "Name is used")
+				End If
+			End If
+		Next']
+		
+		']
+		
+		'[<<<<<<<<<<<Export parametrs in knot>>>>>>>>>>>		
+		oCustPropKnot.Item("StandColon").Value = oStandPart1
+		oCustPropKnot.Item("StandBeam").Value = oStandPart2
+		oCustPropKnot.Item("Path_Colon").Value = oPart1Path
+		oCustPropKnot.Item("Path_Beam").Value = oPart2Path
+		oCustPropKnot.Item("Numb_Colon").Value = codePart1Path
+		oCustPropKnot.Item("Numb_Beam").Value = codePart2Path
+		
+		OpenKnot = ThisApplication.Documents.Open(KnotPath, False)
+		Dim OpKnotDef As AssemblyComponentDefinition = OpenKnot.ComponentDefinition
+		Dim KnotParam As UserParameters
+		KnotParam = OpKnotDef.Parameters.UserParameters
+				
+		KnotParam.Item("Beam1_H").Value = H_Part1
+		KnotParam.Item("Beam1_W").Value = W_Part1
+		KnotParam.Item("Beam1_t").Value = t_Part1
+		KnotParam.Item("Beam1_t2").Value = t2_Part1
+		KnotParam.Item("Beam2_H").Value = H_Part2
+		KnotParam.Item("Beam2_W").Value = W_Part2
+		KnotParam.Item("Beam2_t").Value = t_Part2
+		KnotParam.Item("Beam2_t2").Value = t2_Part2
+		KnotParam.Item("K1_angle").Value = MeasZ
+		KnotParam.Item("K2_angle").Value = MeasX
+		KnotParam.Item("Pos_TorB").Value = PosBeam
+		
+		Dim iLogicAuto As Object 
+		Dim oRule As Object
+		iLogicAuto = iLogicVb.Automation 
+		Try
+			oRule = iLogicAuto.GetRule(OpenKnot, "Form_Knot")
+			iLogicAuto.RunRuleDirect(oRule)
+		Catch
+			MsgBox("There needs to be a rule called 'Form_Knot' in the iCopy assembly to run....", 64, "Excitech iLogic")
+		End Try
+		OpenKnot.Close']
+		
+		iLogicVb.UpdateWhenDone = True
+		']
+	Else
+		MessageBox.Show("Обраний компонент не підтримується. Оберіть вузол з браузера.", "Помилка!")
+		Exit Sub
+	End If
+	iLogicVb.UpdateWhenDone = True
+End Sub
+
+Public Sub SetsPart1(oOccs As ComponentOccurrences, InterPart1 As String, Level As Integer)
+
+	Dim SelectPart1 As ComponentOccurrence
+	
+	If oInterPart1 = InterPart1 Then
+	Else
+		For Each SelectPart1 In oOccs
+			If SelectPart1.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+				Call SetsPart1(SelectPart1.SubOccurrences, InterPart1, Level + 1)
+			Else
+				Try
+					Dim oSelectPart1Def As PartComponentDefinition = SelectPart1.Definition
+					Dim oSelectPart1Doc As PartDocument = oSelectPart1Def.Document
+					oInterPart1 = oSelectPart1Doc.InternalName
+					If oInterPart1 = InterPart1 Then
+						Part1 = SelectPart1
+						oPart1Def = Part1.Definition
+						Dim oPart1Doc As PartDocument = oPart1Def.Document
+						
+						Dim oPart1FullName As String = oPart1Doc.FullFileName
+						oPart1Name = oPart1Doc.DisplayName
+						oPart1Path = Left(oPart1FullName, Len(oPart1FullName) -Len(oPart1Name) -1)
+						Dim Part1AssembNumb As String = InStrRev(oPart1Path, "\", -1)
+						Part1AssembName = Right(oPart1Path, Len(oPart1Path) -Part1AssembNumb)
+						codePart1Path = Part1AssembName.Substring(0, Part1AssembName.IndexOf(" "))
+						
+						Dim oPart1PropSets As PropertySets = oPart1Doc.PropertySets
+						oPart1DesignTrackingPropertySet = oPart1PropSets.Item("Design Tracking Properties")
+						oStandPart1 = oPart1DesignTrackingPropertySet.Item("Catalog Web Link").Value
+						Dim oPart1UserParams As UserParameters = oPart1Def.Parameters.UserParameters
+						
+						If oStandPart1 = "DIN 1025-2" Or oStandPart1 = "DIN 1025-4" Or oStandPart1 = "DIN 1025-5" Or oStandPart1 = "Euronorm 53-62" Then
+							H_Part1 = oPart1UserParams.Item("ParH").Value
+							W_Part1 = oPart1UserParams.Item("b").Value
+							t_Part1 = oPart1UserParams.Item("t1").Value
+							t2_Part1 = oPart1UserParams.Item("t2").Value
+							L_Part1 = oPart1UserParams.Item("G_L").Value
+						ElseIf oStandPart1 = "ДСТУ 8768" Then
+							H_Part1 = oPart1UserParams.Item("ParH").Value
+							W_Part1 = oPart1UserParams.Item("b").Value
+							t_Part1 = oPart1UserParams.Item("s_").Value
+							t2_Part1 = oPart1UserParams.Item("t_").Value
+							L_Part1 = oPart1UserParams.Item("G_L").Value
+						ElseIf oStandPart1 = "ДСТУ 8940" Or oStandPart1 = "ДСТУ EN 10210-2" Or oStandPart1 = "ДСТУ Б В.2.6-8-95" Then
+							H_Part1 = oPart1UserParams.Item("G_H").Value
+							W_Part1 = oPart1UserParams.Item("G_W").Value
+							t_Part1 = oPart1UserParams.Item("G_T").Value
+							t2_Part1 = oPart1UserParams.Item("G_T").Value
+							L_Part1 = oPart1UserParams.Item("G_L").Value
+						End If
+						Exit For
+					End If
+				Catch
+				End Try
+			End If
+		Next
+	End If
+	
+End Sub
+
+Public Sub SetsPart2(oOccs As ComponentOccurrences, InterPart2 As String, Level As Integer)
+
+	Dim SelectPart2 As ComponentOccurrence
+	
+	If oInterPart2 = InterPart2 Then
+	Else
+		For Each SelectPart2 In oOccs
+			If SelectPart2.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+				Call SetsPart2(SelectPart2.SubOccurrences, InterPart2, Level + 1)
+			Else
+				Try
+					Dim oSelectPart2Def As PartComponentDefinition = SelectPart2.Definition
+					Dim oSelectPart2Doc As PartDocument = oSelectPart2Def.Document
+					oInterPart2 = oSelectPart2Doc.InternalName
+					If oInterPart2 = InterPart2 Then
+						Part2 = SelectPart2
+						oPart2Def = Part2.Definition
+						Dim oPart2Doc As PartDocument = oPart2Def.Document
+						
+						Dim oPart2FullName As String = oPart2Doc.FullFileName
+						oPart2Name = oPart2Doc.DisplayName
+						oPart2Path = Left(oPart2FullName, Len(oPart2FullName) -Len(oPart2Name) -1)
+						Dim Part2AssembNumb As String = InStrRev(oPart2Path, "\", -1)
+						Part2AssembName = Right(oPart2Path, Len(oPart2Path) -Part2AssembNumb)
+						codePart2Path = Part2AssembName.Substring(0, Part2AssembName.IndexOf(" "))
+						
+						Dim oPart2PropSets As PropertySets = oPart2Doc.PropertySets
+						oPart2DesignTrackingPropertySet = oPart2PropSets.Item("Design Tracking Properties")
+						oStandPart2 = oPart2DesignTrackingPropertySet.Item("Catalog Web Link").Value
+						Dim oPart2UserParams As UserParameters = oPart2Def.Parameters.UserParameters
+						
+						If oStandPart2 = "DIN 1025-2" Or oStandPart2 = "DIN 1025-4" Or oStandPart2 = "DIN 1025-5" Or oStandPart2 = "Euronorm 53-62" Then
+							H_Part2 = oPart2UserParams.Item("ParH").Value
+							W_Part2 = oPart2UserParams.Item("b").Value
+							t_Part2 = oPart2UserParams.Item("t1").Value
+							t2_Part2 = oPart2UserParams.Item("t2").Value
+							L_Part2 = oPart2UserParams.Item("G_L").Value
+						ElseIf oStandPart2 = "ДСТУ 8768" Then
+							H_Part2 = oPart2UserParams.Item("ParH").Value
+							W_Part2 = oPart2UserParams.Item("b").Value
+							t_Part2 = oPart2UserParams.Item("s_").Value
+							t2_Part2 = oPart2UserParams.Item("t_").Value
+							L_Part2 = oPart2UserParams.Item("G_L").Value
+						ElseIf oStandPart2 = "ДСТУ 8940" Or oStandPart2 = "ДСТУ EN 10210-2" Or oStandPart2 = "ДСТУ Б В.2.6-8-95" Then
+							H_Part2 = oPart2UserParams.Item("G_H").Value
+							W_Part2 = oPart2UserParams.Item("G_W").Value
+							t_Part2 = oPart2UserParams.Item("G_T").Value
+							t2_Part2 = oPart2UserParams.Item("G_T").Value
+							L_Part2 = oPart2UserParams.Item("G_L").Value
+						End If
+						Exit For
+					End If
+				Catch
+				End Try
+			End If
+		Next
+	End If
+	
+End Sub
+
+End Class

@@ -1,0 +1,25 @@
+﻿' <FireOthersImmediately>False</FireOthersImmediately>
+oDoc = ThisDoc.ModelDocument
+If oDoc.DocumentType = kPartDocumentObject Then
+MessageBox.Show("This rule can only be run in an assembly file - exiting rule", "Excitech iLogic")
+Return
+End If
+
+Dim targetOcc As ComponentOccurrence = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Вибіріть вашу колону...(Press ESC to cancel)")
+If IsNothing(targetOcc) Then Exit Sub ' If nothing gets selected then we're done
+
+Dim iLogicAuto As Object 
+Dim oRule As Object
+iLogicAuto = iLogicVb.Automation 
+
+Dim oAssDef As ComponentDefinition = targetOcc.Definition
+Dim oAssDoc As AssemblyDocument = oAssDef.Document
+Dim oFullName As String = oAssDoc.FullFileName
+Dim oAssKnot As AssemblyDocument = ThisApplication.Documents.Open(oFullName, False)
+
+Try
+	oRule = iLogicAuto.GetRule(oAssKnot, "Show_Form")
+	iLogicAuto.RunRuleDirect(oRule)
+Catch
+	MsgBox("There needs to be a rule called 'Show_Form' in the iCopy assembly to run....", 64, "Excitech iLogic")
+End Try

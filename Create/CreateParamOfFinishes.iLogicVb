@@ -1,0 +1,125 @@
+﻿Private Sub Main()
+	Dim oDoc As Document = ThisDoc.Document
+	Dim listFinishs As New Dictionary(Of String, Double)
+	If TypeOf oDoc Is PartDocument Then ' Part document
+		Dim oPartDoc As PartDocument = oDoc
+		If CheckDocMiss(oPartDoc) Then Exit Sub
+		If SelectComp(oPartDoc) Then
+			Call WriteFinishes(listFinishs, oPartDoc.ComponentDefinition.Features.FinishFeatures)
+		End If
+	Else If TypeOf oDoc Is AssemblyDocument Then ' Assembly document
+		Dim oAssDoc As AssemblyDocument = oDoc
+		If CheckDocMiss(oAssDoc) Then Exit Sub
+		Call WriteFinishes(listFinishs, oAssDoc.ComponentDefinition.Features.FinishFeatures)
+		Dim oBOM As BOM = oAssDoc.ComponentDefinition.BOM
+		Dim oBOMViewStruc As BOMView = GetBOMstructure(oBOM)
+		If IsNothing(oBOMViewStruc) Then Exit Sub
+		Call RunInBOMrows(listFinishs, oBOMViewStruc.BOMRows)
+	Else If TypeOf oDoc Is DrawingDocument Then ' Drawing document
+		Dim oDrawDoc As DrawingDocument = oDoc
+		If TypeOf oDrawDoc.ReferencedDocuments.Item(1) Is PartDocument Then ' Part document In Drawing document
+			Dim oPartDoc As PartDocument = oDrawDoc.ReferencedDocuments.Item(1)
+			If CheckDocMiss(oPartDoc) Then Exit Sub
+			If SelectComp(oPartDoc) Then
+				Call WriteFinishes(listFinishs, oPartDoc.ComponentDefinition.Features.FinishFeatures)
+			End If
+		Else If TypeOf oDrawDoc.ReferencedDocuments.Item(1) Is AssemblyDocument Then ' Assembly document In Drawing document
+			Dim oAssDoc As AssemblyDocument = oDrawDoc.ReferencedDocuments.Item(1)
+			If CheckDocMiss(oAssDoc) Then Exit Sub
+			Call WriteFinishes(listFinishs, oAssDoc.ComponentDefinition.Features.FinishFeatures)
+			Dim oBOM As BOM = oAssDoc.ComponentDefinition.BOM
+			Dim oBOMViewStruc As BOMView = GetBOMstructure(oBOM)
+			If IsNothing(oBOMViewStruc) Then Exit Sub
+			Call RunInBOMrows(listFinishs, oBOMViewStruc.BOMRows)
+		End If		
+	End If
+	If listFinishs.Count <> 0 Then
+		For iFinish As Integer = 0 To listFinishs.Count - 1
+			MessageBox.Show(Item & " = " & Round(listFinishs.Values(iFinish), 3) & " м²", _
+							"Finish(" & listFinishs.Keys(iFinish) + 1 & ")")
+		Next iFinish
+	End If
+End Sub
+
+Private Sub RunInBOMrows(ByRef listFinishs As Dictionary(Of String, Double), ByVal oBOMRows As BOMRowsEnumerator)
+	For Each oBOMRow As BOMRow In oBOMRows
+		Dim oDocRow As Document = oBOMRow.ComponentDefinitions.Item(1).Document
+		If SelectComp(oDocRow) Then
+			Call WriteFinishes(listFinishs, oDocRow.ComponentDefinition.Features.FinishFeatures, oBOMRow.ItemQuantity)
+		End If
+		If Not oBOMRow.ChildRows Is Nothing Then
+			Call RunInBOMrows(listFinishs, oBOMRow.ChildRows)
+		End If
+	Next	
+End Sub
+
+Private Function GetBOMstructure(ByVal oBOM As BOM) As BOMView	
+	Dim sLanguageBOM, sSortItem As String	
+	Select Case ThisApplication.LanguageCode
+	Case "en-US"
+		sLanguageBOM = "Structured"
+		sSortItem = "Item"
+	Case "ru-RU"
+		sLanguageBOM = "Структурированный"
+		sSortItem = "Номер"
+	Case Else
+		Exit Function
+	End Select
+	
+	If oBOM.StructuredViewEnabled = False Then oBOM.StructuredViewEnabled = True
+	If oBOM.StructuredViewFirstLevelOnly = True Then oBOM.StructuredViewFirstLevelOnly = False
+	oBOM.BOMViews.Item(sLanguageBOM).Sort(sSortItem, True)
+	
+	Return oBOM.BOMViews.Item(sLanguageBOM)
+End Function
+
+Private Function WriteFinishes(ByRef listFinishs As Dictionary(Of String, Double), _
+								ByVal oFinFeat As FinishFeatures, _
+								Optional ByVal QTy As Integer = 1)
+	For Each oFinish As FinishFeature In oFinFeat
+		If oFinish.Definition.FinishType = FinishTypeEnum.kAppearanceFinishType Or
+			oFinish.Definition.FinishType = FinishTypeEnum.kPaintFinishType Then
+			Dim NameFinish As String = oFinish.Name
+			Dim oName, oArea, oParam As Inventor.Parameter
+			For Each oParam In oFinish.Parameters
+				If oParam.Name.Contains("Appearance") Then
+					oName = oParam
+				Else If oParam.Name.Contains("Area") Then
+					oArea = oParam
+				End If
+			Next
+			If listFinishs.ContainsKey(oName.Value) Then
+				listFinishs(oName.Value) = listFinishs(oName.Value) + ((oArea.Value * QTy) / 10000)
+			Else
+				listFinishs.Add(oName.Value, (oArea.Value * QTy) / 10000)
+			End If
+		End If
+	Next
+End Function
+
+Private Function SelectComp(ByVal oDoc As Document) As Boolean
+	Dim oDocDef As ComponentDefinition = oDoc.ComponentDefinition
+	If oDocDef.BOMStructure = BOMStructureEnum.kNormalBOMStructure Or
+		oDocDef.BOMStructure = BOMStructureEnum.kInseparableBOMStructure Or
+		oDocDef.BOMStructure = BOMStructureEnum.kPurchasedBOMStructure Then
+		Dim strLocName, strLocType As String
+		oDoc.GetLocationFoundIn(strLocName, strLocType)
+		If Not strLocType = kLibraryLocation Then
+			If oDocDef.Features.FinishFeatures.Count <> 0 Then
+				Return True
+			End If
+		End If
+	End If
+	Return False
+End Function
+
+Private Function CheckDocMiss(ByVal oDoc As Document) As Boolean
+	For Each oRefDoc As DocumentDescriptor In oDoc.ReferencedDocumentDescriptors
+		If Not oRefDoc.ReferenceSuppressed Then
+			If oRefDoc.ReferenceMissing Then
+				Return True			
+			End If
+		End If
+	Next
+	Return False
+End Function

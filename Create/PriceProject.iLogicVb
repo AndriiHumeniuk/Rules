@@ -1,0 +1,187 @@
+﻿Sub main
+	Dim coundParam As Integer
+	Dim kPrice, kWorker As Double
+	Dim oActDoc As _Document = ThisApplication.ActiveDocument
+	If TypeOf oActDoc Is AssemblyDocument Then
+		Dim oAssDoc As AssemblyDocument = oActDoc
+		Dim oProgBar As Inventor.ProgressBar
+		Dim iRefDoc As Integer = 1
+		oProgBar = ThisApplication.CreateProgressBar(False, oAssDoc.AllReferencedDocuments.Count, "Count parameters...")
+		coundParam += GetCoundParamOfDoc(oAssDoc.ComponentDefinition.Parameters)
+		For Each oRefDoc As Document In oAssDoc.AllReferencedDocuments
+			oProgBar.Message = "Count parameters of component. Progress " & iRefDoc & " of " & oAssDoc.AllReferencedDocuments.Count & "."
+			oProgBar.UpdateProgress
+			Dim oParams As Parameters = Nothing
+			If CheckComponent(oRefDoc.ComponentDefinition) Then
+				oParams = oRefDoc.ComponentDefinition.Parameters
+			Else
+				Continue For
+			End If
+			coundParam += GetCoundParamOfDoc(oParams)
+			iRefDoc += 1
+		Next
+		oProgBar.Close()
+	Else If TypeOf oActDoc Is PartDocument Then
+		Dim oPartDoc As PartDocument = oActDoc
+		Dim oPartDef As PartComponentDefinition = oPartDoc.ComponentDefinition
+		If CheckComponent(oPartDef) Then
+			coundParam = GetCoundParamOfDoc(oPartDef.Parameters)
+		Else
+			MessageBox.Show("Дане правило не розповсюджуєтсья на придбані вироби.", "Помилка!",MessageBoxButtons.OK , MessageBoxIcon.Error)
+			Exit Sub
+		End If
+	Else
+		MessageBox.Show("Дане правило працюэ виключно для документыв 'Збірка' та 'Деталь'.", "Помилка!",MessageBoxButtons.OK , MessageBoxIcon.Error)
+	End If
+	If Not IsNothing(coundParam) Or coundParam = 0 Then
+		kPrice = Get_kPrice(oActDoc)
+		inc = .05
+		Dim FullPrice As Integer = (Ceil(Round((coundParam * kPrice)/100, 4) / inc) * inc)*1000
+		kWorker = Get_kWorker(FullPrice)
+		If Not IsNothing(kPrice) Then
+			MessageBox.Show("Кількість параметрів: " & coundParam & ";" & vbCrLf &
+							"Ціна: " & FullPrice & " грн.;" & vbCrLf &
+							"Час виконання: " & Round(kWorker, 2) & " днів.", "Ціна та термін виконання проекту!")
+		End If
+	End If
+End Sub
+
+Private Function Get_kWorker(kPrice As Double) As Double
+	Dim posWorker As New ArrayList
+	Dim sWorker As String
+	Dim dTaxes As Double = 1.2
+	posWorker.AddRange({"Інж.-конструктор", "Провідний інж.-конструктор", "Головний інж.-конструктор" })
+	posWorker.Sort()
+	sWorker = InputListBox("", posWorker, posWorker(0), "Термін виконання.", "Оберіть посаду працівника.")
+	Select Case sWorker
+	Case "Інж.-конструктор"
+		Return kPrice / (600*dTaxes)
+	Case "Провідний інж.-конструктор"
+		Return kPrice / (1000*dTaxes)
+	Case "Головний інж.-конструктор"
+		Return kPrice / (1400*dTaxes)
+	End Select
+	Return Nothing
+End Function
+
+Private Function Get_kPrice(oDoc As Document) As Double
+	Dim typeDocList, typeWorkLis As New ArrayList
+	Dim typeDoc, typeWork As String
+	typeWorkLis.AddRange({"Моделювання з існ. креслень", "Моделювання з об'єкту", "Нова розробка"})
+	typeDocList.AddRange({"Металоконструкція", "Оснастка", "Трубопровід", "Обладнання" })	
+	typeWorkLis.Sort
+	typeDocList.Sort
+	Dim DoDraw As Boolean = True
+	typeDoc = InputListBox(oDoc.DisplayName, typeDocList, typeDocList(0), "Коефіціент складності.", "Оберіть тип конструкції.")
+	typeWork = InputListBox(oDoc.DisplayName, typeWorkLis, typeWorkLis(0), "Коефіціент складності.", "Оберіть тип робіт.")
+	If Not MessageBox.Show("До вартості внести розробку креслень?", "Розробка креслень.", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = vbYes Then
+		DoDraw = False
+	End If
+	Select Case typeWork
+		Case "Нова розробка"
+			Select Case typeDoc
+				Case "Металоконструкція"
+					If DoDraw Then
+						Return 1.25
+					Else
+						Return 0.75
+					End If
+				Case "Оснастка"
+					If DoDraw Then
+						Return 1.6
+					Else
+						Return 0.95
+					End If
+				Case "Трубопровід"
+					If DoDraw Then
+						Return 1.05
+					Else
+						Return 0.7
+					End If
+				Case "Обладнання"
+					If DoDraw Then
+						Return 2.15
+					Else
+						Return 1.35
+					End If
+			End Select
+		Case "Моделювання з об'єкту"
+			Select Case typeDoc
+				Case "Металоконструкція"
+					If DoDraw Then
+						Return 1.15
+					Else
+						Return 0.7
+					End If
+				Case "Оснастка"
+					If DoDraw Then
+						Return 1.5
+					Else
+						Return 0.9
+					End If
+				Case "Трубопровід"
+					If DoDraw Then
+						Return 1.0
+					Else
+						Return 0.6
+					End If
+				Case "Обладнання"
+					If DoDraw Then
+						Return 1.9
+					Else
+						Return 1.2
+					End If
+			End Select
+		Case "Моделювання з існ. креслень"
+			Select Case typeDoc
+				Case "Металоконструкція"
+					If DoDraw Then
+						Return 1.0
+					Else
+						Return 0.6
+					End If
+				Case "Оснастка"
+					If DoDraw Then
+						Return 1.1
+					Else
+						Return 0.65
+					End If
+				Case "Трубопровід"
+					If DoDraw Then
+						Return 0.9
+					Else
+						Return 0.55
+					End If
+				Case "Обладнання"
+					If DoDraw Then
+						Return 1.2
+					Else
+						Return 0.7
+					End If
+			End Select
+	End Select
+	Return Nothing
+End Function
+
+Private Function CheckComponent(oDef As ComponentDefinition)
+	Dim oBOMStruc As BOMStructureEnum
+	If TypeOf oDef Is AssemblyComponentDefinition Then
+		oBOMStruc = oDef.BOMStructure
+	Else If TypeOf oDef Is PartComponentDefinition Then
+		oBOMStruc = oDef.BOMStructure
+	End If
+	If Not oBOMStruc = BOMStructureEnum.kPurchasedBOMStructure Then
+		Return True
+	End If
+	Return False
+End Function
+
+Private Function GetCoundParamOfDoc(oParams As Parameters) As Integer
+	Dim countParams As Integer
+		For Each oParam As ModelParameter In oParams.ModelParameters	
+			If oParam.InUse Then
+				countParams += 1
+			End If
+		Next
+	Return countParams
+End Function

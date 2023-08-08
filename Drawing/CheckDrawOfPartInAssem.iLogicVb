@@ -1,0 +1,46 @@
+﻿Sub main
+	Dim oDoc As Document = ThisDoc.Document
+	If TypeOf oDoc Is DrawingDocument Then
+		Dim oDraw As DrawingDocument = oDoc
+		If HasBOMinDraw(oDraw.Sheets) Then
+			For Each oSheet As Sheet In oDraw.Sheets
+				For Each oView As DrawingView In oSheet.DrawingViews
+					If IsNothing(oView.ParentView) Then
+						If oView.ReferencedDocumentDescriptor.ReferencedDocumentType = 12290 Then
+							Dim oPart As PartDocument = oView.ReferencedDocumentDescriptor.ReferencedDocument
+							Dim oDesTrackProp As PropertySet = oPart.PropertySets.Item("Design Tracking Properties")
+							Dim oDocSummInfo As PropertySet = oPart.PropertySets.Item("Inventor Document Summary Information")
+							If CheckPartInBOM(oDraw.Sheets, oDesTrackProp.Item("Part Number").Value) Then
+								oDocSummInfo.Item("Company").Value = ""
+							End If
+						End If
+					End If
+				Next
+			Next
+		End If
+	End If
+End Sub
+
+Private Function HasBOMinDraw(oSheets As Sheets) As Boolean
+	For Each oSheet As Sheet In oSheets
+		For Each oListPart As PartsList In oSheet.PartsLists
+			If Not oListPart.Level = PartsListLevelEnum.kPartsOnly Then
+				Return True
+			End If
+		Next
+	Next
+	Return False
+End Function
+
+Private Function CheckPartInBOM(oSheets As Sheets, oPartNumb As String) As Boolean
+	For Each oSheet As Sheet In oSheets
+		For Each oListPart As PartsList In oSheet.PartsLists
+			For Each oRow As PartsListRow In oListPart.PartsListRows
+				If oRow.Item(2).Value = oPartNumb Then
+					Return True
+				End If
+			Next
+		Next
+	Next
+	Return False
+End Function

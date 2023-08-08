@@ -1,0 +1,12 @@
+﻿If iProperties.Mass <> 0 Then
+   Try
+		Dim Subj As String
+		Subj = iProperties.Value(“Summary”, “Subject”)
+		iProperties.Value("Custom", "Stren_steel") = Subj.Remove(0, Subj.IndexOf("-") + 1) 'Клас міцності
+		iProperties.Value("Custom", "Stan_steel") = ""
+	Catch
+'		MessageBox.Show("Stock Number не обновился", "iLogic Gabarit")
+   End Try
+End If
+
+InventorVb.DocumentUpdate()

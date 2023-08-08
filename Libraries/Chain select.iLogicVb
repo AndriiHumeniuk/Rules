@@ -1,0 +1,24 @@
+﻿Dim oDoc As Document = ThisDoc.Document
+
+Dim List() As String = {"ГОСТ 13568-97", "ISO 606:2004"}
+
+Dim ParamNameTame As String = "Stand"
+Dim oComp As PartComponentDefinition = oDoc.ComponentDefinition
+Dim oUPs As UserParameters = oComp.Parameters.UserParameters
+Dim oUP As UserParameters
+
+Try
+	Test = oUPs.Item(ParamNameTame).Value
+Catch
+	oUP = oUPs.AddByValue(ParamNameTame, List(1), UnitsTypeEnum.kTextUnits)
+End Try
+
+MultiValue.List(ParamNameTame) = List
+
+Dim Стандарт As String
+
+Стандарт = InputListBox("Виберіть стандарт ланцюга", MultiValue.List("Stand"), Тема_Вибір, Title := "Список", ListName := "Номер редакции:")
+
+iProperties.Value("Custom", "Standart") = Стандарт
+
+iLogicVb.RunExternalRule("Chain iProperties")

@@ -1,0 +1,63 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDDoc As DrawingDocument = oInvApp.ActiveDocument
+	Dim oTM As TransactionManager = oInvApp.TransactionManager
+	Dim newTM As Transaction = oTM.StartTransaction(oDDoc, "ChangeCurvesColor")
+	For Each oSheet As Sheet In oDDoc.Sheets
+		For Each oView As DrawingView In oSheet.DrawingViews
+			If oView.ViewStyle <> DrawingViewStyleEnum.kShadedDrawingViewStyle Then
+				Dim oRefDoc As AssemblyDocument = oView.ReferencedDocumentDescriptor.ReferencedDocument
+				Dim oRefDef As AssemblyComponentDefinition = oRefDoc.ComponentDefinition
+				Call ChangePhantomCurvesView(oInvApp, oView, oRefDef.Occurrences)
+'				Call ChangeCutCurvesView(oView, oRefDef.Occurrences)
+			End If
+		Next
+	Next
+	newTM.End()
+End Sub
+
+Private Function ChangeCutCurvesView(ByVal oView As DrawingView, ByVal oOccs As ComponentOccurrences)
+	For Each oOcc As ComponentOccurrence In oOccs
+		If TypeOf oOcc.Definition Is PartComponentDefinition Or _
+			TypeOf oOcc.Definition Is SheetMetalComponentDefinition Then
+			Dim oCompDef As PartComponentDefinition = oOcc.Definition
+			If oOcc.SurfaceBodies.Count > 1 Then
+				For Each oBody As SurfaceBody In oOcc.SurfaceBodies
+					If oBody.Name.Contains("Обрізка") Then
+						oCurves = oView.DrawingCurves(oBody)
+						For Each oCurve As DrawingCurve In oCurves
+'							oColl = ThisApplication.TransientObjects.CreateObjectCollection			
+'							For Each oSegment In oCurve.Segments
+'								oColl.Add(oSegment)
+'							Next
+'							oView.Parent.ChangeLayer(oColl,oLayer)
+							On Error Resume Next
+							oCurve.Color = ThisApplication.TransientObjects.CreateColor(255, 0, 0) 'Red
+							oCurve.LineWeight = 0.018
+						Next
+					End If
+				Next
+			End If
+		End If
+		If oOcc.SubOccurrences IsNot Nothing Then
+			Call ChangeCutCurvesView(oView, oOcc.SubOccurrences)
+		End If
+	Next
+End Function
+
+Private Function ChangePhantomCurvesView(oInvApp As Inventor.Application, ByVal oView As DrawingView, ByVal oOccs As ComponentOccurrences)
+	For Each oOcc As ComponentOccurrence In oOccs
+		If oOcc.BOMStructure = BOMStructureEnum.kPhantomBOMStructure
+			Dim oCurves As DrawingCurvesEnumerator = oView.DrawingCurves(oOcc)
+			For Each oCurve As DrawingCurve In oCurves
+				On Error Resume Next
+				oCurve.Color = ThisApplication.TransientObjects.CreateColor(0, 131, 143) 'Cyan
+				oCurve.LineWeight = 0.018
+			Next
+			Continue For
+		End If
+		If oOcc.SubOccurrences IsNot Nothing Then
+			Call ChangePhantomCurvesView(oInvApp, oView, oOcc.SubOccurrences)
+		End If
+	Next
+End Function

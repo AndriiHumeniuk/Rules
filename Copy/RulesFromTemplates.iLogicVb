@@ -1,0 +1,69 @@
+﻿' <FireOthersImmediately>False</FireOthersImmediately>
+Sub Main
+	Dim oDoc As Document = ThisDoc.Document
+	If Not TypeOf oDoc Is AssemblyDocument Then Exit Sub
+	Dim oAsmDoc As AssemblyDocument = oDoc
+	Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
+	Dim oPBar As Inventor.ProgressBar = ThisApplication.CreateProgressBar(False, oAsmDoc.AllReferencedDocuments.Count, "Copy ryles...")
+	Dim i As Integer = 1
+	oPBar.Message = "Loading..."
+	Dim oPartDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
+	Dim oSMDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
+	Dim oADoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Сборка.iam", False) 'AssemblyDocument
+	Dim oFrameDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\OldTemplates\ШаблонПрофіля.ipt", False) 'Frame Generator PartDocument
+	Dim oTM As Transaction = ThisApplication.TransactionManager.StartTransaction(oAsmDoc, "CopyRulesFromTemplates")
+	Call CopyRules(oADoc, oAsmDoc)
+	Call CopyEventsPropSet(oADoc, oAsmDoc)
+	For Each copyTo As Document In oAsmDoc.AllReferencedDocuments
+		oPBar.Message = "Copy ryles in document. Progress " & i & " of " & oAsmDoc.AllReferencedDocuments.Count & "."
+		If oOccs.AllReferencedOccurrences(copyTo).Count > 0 Then
+			If copyTo.IsModifiable Then
+				If copyTo.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject _
+					AndAlso Not copyTo.DocumentInterests.HasInterest("{BB8FE430-83BF-418D-8DF9-9B323D3DB9B9}") _
+					AndAlso Not copyTo.DocumentInterests.HasInterest("{AC211AE0-A7A5-4589-916D-81C529DA6D17}") Then 'AssemblyDocument
+					Call CopyRules(oADoc, copyTo)
+					Call CopyEventsPropSet(oADoc, copyTo)
+				Else If copyTo.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
+					If copyTo.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then 'SheetMetalDocument
+						Call CopyRules(oSMDoc, copyTo)
+						Call CopyEventsPropSet(oSMDoc, copyTo)
+					Else
+						If copyTo.DocumentInterests.HasInterest("{AC211AE0-A7A5-4589-916D-81C529DA6D17}") Then 'Frame Generator PartDocument
+							If Not copyTo.ComponentDefinition.BOMStructure = BOMStructureEnum.kPhantomBOMStructure Then
+								Call CopyRules(oFrameDoc, copyTo)
+								Call CopyEventsPropSet(oFrameDoc, copyTo)
+							End If
+						Else 'PartDocument
+							Call CopyRules(oPartDoc, copyTo)
+							Call CopyEventsPropSet(oPartDoc, copyTo)
+						End If
+					End If
+				End If
+			End If
+		End If
+		oPBar.UpdateProgress
+		i += 1
+	Next
+	oTM.End()
+	oPartDoc.Close()
+	oSMDoc.Close()
+	oADoc.Close()
+	oFrameDoc.Close()
+	oPBar.Close()
+End Sub
+
+Sub CopyRules(ByVal CopyFrom As Document, ByRef CopyTo As Document)
+	iLogicVb.Automation.DeleteAllRules(CopyTo)
+	For Each oRule As iLogicRule In iLogicVb.Automation.Rules(CopyFrom)
+		Dim oCopy As iLogicRule = iLogicVb.Automation.AddRule(CopyTo, oRule.Name, oRule.Text)
+	Next
+End Sub
+
+Sub CopyEventsPropSet(ByVal CopyFrom As Document, ByRef CopyTo As Document)
+	Dim oPropSet As Inventor.PropertySet = CopyFrom.PropertySets("{2C540830-0723-455E-A8E2-891722EB4C3E}")
+	Try : CopyTo.PropertySets("{2C540830-0723-455E-A8E2-891722EB4C3E}").Delete() : Catch : End Try
+	Dim newPropSet As Inventor.PropertySet = CopyTo.PropertySets.Add("_iLogicEventsRules", "{2C540830-0723-455E-A8E2-891722EB4C3E}")
+	For Each prop As Inventor.Property In oPropSet
+		newPropSet.Add(prop.Value, prop.Name, prop.PropId)
+	Next
+End Sub

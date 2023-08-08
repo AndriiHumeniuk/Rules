@@ -1,0 +1,56 @@
+﻿Dim oPartDoc As PartDocument = ThisDoc.Document
+Dim oPartMat As MaterialAsset = oPartDoc.ActiveMaterial
+Dim mat As String = oPartMat.DisplayName
+Dim MatDensity As AssetValue = oPartMat.PhysicalPropertiesAsset.Item("structural_Density")
+Dim dens As Double = MatDensity.Value
+
+Xsize = SheetMetal.FlatExtentsLength
+Ysize = SheetMetal.FlatExtentsWidth
+
+Parameter("Довжина") = MaxOfMany(Xsize, Ysize)
+Parameter("Ширина") = MinOfMany(Xsize, Ysize)
+
+Dim Довжина1 As String
+Dim Ширина1 As String
+
+Довжина1 = Round(Parameter("Довжина"), 3)
+Ширина1 = Round(Parameter("Ширина"), 3)
+
+iProperties.Value("Custom", "Довжина") = "" & Довжина1 & " мм"
+iProperties.Value("Custom", "Ширина") = "" & Ширина1 & " мм"
+
+Dim PlateName_Довж As Double
+Dim PlateName_Шир As Double
+Dim PlateName_Length As Double
+Dim PlateName_Width As Double
+Dim RevNumb As String
+
+PlateName = iProperties.Value(“Summary”, “Title”)
+PlateName_Довж = Parameter("Довжина")
+PlateName_Шир = Parameter("Ширина")
+PlateName_Товщ = Parameter("Толщина")
+
+inc_Довж = 1 ' rounding increment ( .125, .25, .5, etc)
+PlateName_Length = Round(Round(PlateName_Довж,4) / inc_Довж) * inc_Довж
+
+inc_Шир = 1 ' rounding increment ( .125, .25, .5, etc)
+PlateName_Width = Round(Round(PlateName_Шир, 4) / inc_Шир) * inc_Шир
+
+inc_Товщ = 0.1 ' rounding increment ( .125, .25, .5, etc)
+PlateName_Thing = Round(Round(PlateName_Товщ,4) / inc_Товщ) * inc_Товщ
+
+RevNumb = iProperties.Value(“Summary”, “Revision Number”)
+
+If iProperties.Value("Summary", "Company") = "" Then
+	iProperties.Value(“Summary”, “Title”) = "" & RevNumb & " " & PlateName_Thing & "-" & PlateName_Length & "×" & PlateName_Width & ""
+End If
+
+Dim Area_Color As Double = iProperties.Area/1000000
+iProperties.Value("Custom", "Area_Color") = Round(Area_Color, 3)
+
+iProperties.Value("Custom", "Mass_size") = Round((iProperties.Volume * dens) / 1000000, 2)
+iProperties.Value("Custom", "Main_size") = Round(Parameter("Area_1")/ 1000000, 3)
+iProperties.Value("Custom", "Stren_steel") = mat.Substring(0,mat.IndexOf(" ")) 'Клас міцності
+iProperties.Value("Custom", "Stan_steel") = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала
+
+InventorVb.DocumentUpdate()

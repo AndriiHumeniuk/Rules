@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FormSpecification xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Cope profile scetch</Name>
+  <Guid>cc7f12f0-93f5-413e-9b2a-7d6411403e7a</Guid>
+  <SizeConstraints>
+    <MinimumSize>
+      <Width>
+        <Value>350</Value>
+        <Units>Pixel</Units>
+      </Width>
+      <Height>
+        <Value>400</Value>
+        <Units>Pixel</Units>
+      </Height>
+    </MinimumSize>
+    <MaximumSize>
+      <Width>
+        <Value>400</Value>
+        <Units>Pixel</Units>
+      </Width>
+      <Height>
+        <Value>500</Value>
+        <Units>Pixel</Units>
+      </Height>
+    </MaximumSize>
+  </SizeConstraints>
+  <Items>
+    <UiElementSpec xsi:type="iLogicExternalRuleControlSpec">
+      <Name>Create user parameters to get started</Name>
+      <Guid>acae2017-d410-4662-bcab-f8f462bb8781</Guid>
+      <Image>
+        <BitmapByteArray />
+      </Image>
+      <TextVisible>true</TextVisible>
+      <RuleName>Set up a profile</RuleName>
+      <RuleButtonBehavior>RunRule</RuleButtonBehavior>
+      <Path>Templates\Rules\Sketches\Set up a profile.iLogicVb</Path>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="MultiValueTextParameterControlSpec">
+      <Name>Active_profile</Name>
+      <Guid>1e59078e-9ded-4b46-9019-a43caaead7c8</Guid>
+      <ToolTip />
+      <ParameterName>Active_profile</ParameterName>
+      <EditControlType>ComboBox</EditControlType>
+      <AllowCustomValues>false</AllowCustomValues>
+      <MinimumItemsToShow>2</MinimumItemsToShow>
+      <RadioGroupColumnCount>1</RadioGroupColumnCount>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="iLogicExternalRuleControlSpec">
+      <Name>Create list of standarts</Name>
+      <Guid>4039de32-852d-46af-aaba-c0cc29106d5c</Guid>
+      <Image>
+        <BitmapByteArray />
+      </Image>
+      <TextVisible>true</TextVisible>
+      <RuleName>Set up a profile</RuleName>
+      <RuleButtonBehavior>RunRule</RuleButtonBehavior>
+      <Path>Set up a profile.iLogicVb</Path>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="MultiValueTextParameterControlSpec">
+      <Name>Active_standart</Name>
+      <Guid>f27f4e51-1753-4d81-a1a0-ca53f67ee522</Guid>
+      <ToolTip />
+      <ParameterName>Active_standart</ParameterName>
+      <EditControlType>ComboBox</EditControlType>
+      <AllowCustomValues>false</AllowCustomValues>
+      <MinimumItemsToShow>2</MinimumItemsToShow>
+      <RadioGroupColumnCount>1</RadioGroupColumnCount>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="iLogicExternalRuleControlSpec">
+      <Name>Create list of sizes</Name>
+      <Guid>fcd73eb6-7287-46eb-a1de-535a5a709ac2</Guid>
+      <Image>
+        <BitmapByteArray />
+      </Image>
+      <TextVisible>true</TextVisible>
+      <RuleName>Set up a profile</RuleName>
+      <RuleButtonBehavior>RunRule</RuleButtonBehavior>
+      <Path>Set up a profile.iLogicVb</Path>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="MultiValueTextParameterControlSpec">
+      <Name>Active_size</Name>
+      <Guid>2a2a3b08-0dfc-406a-88b8-c81da36b669d</Guid>
+      <ToolTip />
+      <ParameterName>Active_size</ParameterName>
+      <EditControlType>ComboBox</EditControlType>
+      <AllowCustomValues>false</AllowCustomValues>
+      <MinimumItemsToShow>2</MinimumItemsToShow>
+      <RadioGroupColumnCount>1</RadioGroupColumnCount>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="iLogicExternalRuleControlSpec">
+      <Name>Set up a profile</Name>
+      <Guid>ce382e61-b6a3-4e6a-910e-77cc6fd541b2</Guid>
+      <Image>
+        <BitmapByteArray />
+      </Image>
+      <TextVisible>true</TextVisible>
+      <RuleName>Set up a profile</RuleName>
+      <RuleButtonBehavior>RunRule</RuleButtonBehavior>
+      <Path>Templates\Rules\Sketches\Set up a profile.iLogicVb</Path>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="BooleanParameterControlSpec">
+      <Name>Do you want to copy the start point?</Name>
+      <Guid>a69d3ae6-2e5b-4d8a-a1f8-2d77c4c5233e</Guid>
+      <ToolTip />
+      <ParameterName>Copy_center_point</ParameterName>
+      <EditControlType>CheckBox</EditControlType>
+    </UiElementSpec>
+    <UiElementSpec xsi:type="iLogicExternalRuleControlSpec">
+      <Name>Copy profile sketch</Name>
+      <Guid>7f4df458-f5f9-483f-a2d4-99fe42711b00</Guid>
+      <Image>
+        <BitmapByteArray />
+      </Image>
+      <TextVisible>true</TextVisible>
+      <RuleName>Copy profile sketch</RuleName>
+      <RuleButtonBehavior>RunRule</RuleButtonBehavior>
+      <Path>Templates\Rules\Sketches\Copy profile sketch.iLogicVb</Path>
+    </UiElementSpec>
+  </Items>
+  <StyleAndSkinName>
+    <StyleName>Default</StyleName>
+  </StyleAndSkinName>
+  <AllowCustomization>true</AllowCustomization>
+  <PredefinedButtons>Done</PredefinedButtons>
+  <Modal>false</Modal>
+  <ItemBordersVisible>true</ItemBordersVisible>
+</FormSpecification>

@@ -1,0 +1,941 @@
+﻿Sub main
+	'[ Параметри
+	Dim oPartDoc As PartDocument = ThisDoc.Document
+	Dim oPartDef As PartComponentDefinition = oPartDoc.ComponentDefinition
+	Dim sName As String = System.IO.Path.GetFileNameWithoutExtension(oPartDoc.FullDocumentName)
+	If String.IsNullOrEmpty(sName) Then Exit Sub
+	Dim oPartMat As MaterialAsset = oPartDoc.ActiveMaterial
+	Dim dens As Double = oPartMat.PhysicalPropertiesAsset.Item("structural_Density").Value
+	Dim sMatName As String = oPartMat.DisplayName
+	Dim oUOfM As UnitsOfMeasure = oPartDoc.UnitsOfMeasure
+	Dim oUserParams As UserParameters = oPartDef.Parameters.UserParameters
+	Dim oCustom As PropertySet = oPartDoc.PropertySets("Inventor User Defined Properties")
+	Dim oSummary As PropertySet = oPartDoc.PropertySets("Inventor Summary Information")
+	Dim oSummaryInv As PropertySet = oPartDoc.PropertySets("Inventor Document Summary Information")
+	Dim oProject As PropertySet = oPartDoc.PropertySets("Design Tracking Properties")
+	
+	Dim ParamLong As Inventor.Parameter = oUserParams("Довжина")
+	
+	Dim Довж, Вис, Шир, Товщ, МасОбєм, МасПлощ, Round_y As Double
+	Dim SizeStandart As New List(Of Double)
+	
+	Довж = oUOfM.ConvertUnits(ParamLong.Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
+	Вис = oUOfM.ConvertUnits(oUserParams("Висота").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
+	Шир = oUOfM.ConvertUnits(oUserParams("Ширина").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
+	Try : Товщ = oUOfM.ConvertUnits(oUserParams("Толщина").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
+	Catch : Товщ = Вис : End Try
+	
+	Dim Довж_R, Вис_R, Шир_R, Товщ_R As Double
+	Dim RevNumb As String
+	
+	Try
+		Round_y = oCustom("Round_y").Value
+	Catch
+		Round_y = 1
+		oCustom.Add(Round_y, "Round_y")
+	End Try
+	If Round_y <> 0 Then
+		If Round_y > 0 And Round_y < 1 Then
+			inc = Round_y
+			Довж_R = Round(Round(Довж, 4) / inc) * inc
+		ElseIf Round_y = 1 Then
+			Довж_R = Round(Довж)
+		ElseIf Round_y > 1 And Round_y < 10 Then
+			inc = Round_y / 10
+			Довж_R = (Round(Round((Довж / 10), 4) / inc) * inc) * 10
+		ElseIf Round_y >= 10 And Round_y < 100 Then
+			inc = Round_y / 100
+			Довж_R = (Ceil(Round((Довж / 100), 4) / inc) * inc) * 100
+		ElseIf Round_y >= 100 And Round_y < 1000 Then
+			inc = Round_y / 1000
+			Довж_R = (Ceil(Round((Довж / 1000), 4) / inc) * inc) * 1000
+		ElseIf Round_y >= 1000 Then
+			inc = 0.1
+			Довж_R = (Ceil(Round((Довж / 10000), 4) / inc) * inc) * 10000
+		End If
+	End If
+	
+	Вис_01 = .01
+	Вис_R = Round(Round(Вис, 4) / Вис_01) * Вис_01
+	
+	Шир_01 = .01
+	Шир_R = Round(Round(Шир, 4) / Шир_01) * Шир_01
+	
+	Товщ_001 = .001
+	Товщ_R = Round(Round(Товщ, 4) / Товщ_001) * Товщ_001
+
+	Dim Веб_сайт, iPropValSumSub, SumTit As String
+	
+	Веб_сайт = oProject("Catalog Web Link").Value
+	RevNumb = oSummary(“Revision Number”).Value
+	volum = iProperties.Volume']
+	Select Case Веб_сайт
+	'[ Прут
+		Case "ДСТУ 4738"
+			SizeStandart.AddRange({5, 5.5, 6, 6.3, 6.5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, _
+			27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 52, 53, 54, 55, 56, 58, 60, 62, 63, 65, 67, 68, _
+			70, 72, 73, 75, 78, 80, 82, 85, 87, 90, 92, 95, 97, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, _
+			190, 195, 200, 210, 220, 230, 240, 250, 260, 270})
+			If Довж_R = Шир_R Then
+				iPropValSumSub = "" & Довж_R & ""
+				ParamLong = oUserParams("Висота")
+				МасОбєм = (PI * (iPropValSumSub / 2) * (iPropValSumSub / 2)) * Вис_R
+			Else
+				iPropValSumSub = "" & Вис_R & ""
+				МасОбєм = (PI * (iPropValSumSub/2) * (iPropValSumSub/2)) * Довж_R
+			End If
+			For i As Integer = 0 To SizeStandart.Count
+				If iPropValSumSub <= SizeStandart.Item(i) Then
+					iPropValSumSub = SizeStandart.Item(i)
+					Exit For
+				End If
+			Next']
+	'[ Дріт
+		Case "ДСТУ 3671-97"
+			SizeStandart.AddRange({0.8, 1, 1.2, 1.6, 2, 2.4, 2.5, 3.0, 3.2, 4, 5, 6, 7, 8})
+			If Довж_R = Шир_R Then
+				iPropValSumSub = "" & Довж_R & ""
+				ParamLong = oUserParams("Висота")
+				МасОбєм = (PI * (iPropValSumSub / 2) * (iPropValSumSub / 2)) * Вис_R
+			Else
+				iPropValSumSub = "" & Вис_R & ""
+				МасОбєм = (PI * (iPropValSumSub/2) * (iPropValSumSub/2)) * Довж_R
+			End If
+			For i As Integer = 0 To SizeStandart.Count
+				If iPropValSumSub <= SizeStandart.Item(i) Then
+					iPropValSumSub = SizeStandart.Item(i)
+					Exit For
+				End If
+			Next']
+	'[ Квадрат
+		Case "ДСТУ 4746"
+			iPropValSumSub = "" & Шир_R & ""
+			МасОбєм = (iPropValSumSub * iPropValSumSub) * Довж_R']
+	'[ Шестиграник
+		Case "ДСТУ EN 10061"
+			iPropValSumSub = "" & Вис_R & ""']
+	'[ Профіль
+		Case "ДСТУ 8808"
+			iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & 15 & "×" & Товщ_R & " Б"']
+	'[ Лист
+		Case "ДСТУ 8540"
+			iPropValSumSub = "Б-ПН-" & Вис_R & ""
+		Case "ДСТУ 8783"
+			iPropValSumSub = "В-К-ПУ-" & Вис_R & ""
+			If RevNumb = "Лист ромб" Then
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 1.05733
+				iProperties.PartColor = "Ромбы"
+			ElseIf RevNumb = "Лист сочевиця" Then
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 1.03057
+				iProperties.PartColor = "Ромбовидная пластина 2 — темно-серый"
+			End If
+		Case "ГОСТ 8706-78"
+			iProperties.PartColor = "Ограждение из проволочной сетки 1"
+			If Вис_R >= 12.6 And Вис_R <= 12.8 Then
+				iPropValSumSub = "406"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.2
+			ElseIf Вис_R = 13 Then
+				iPropValSumSub = "506"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.20892
+			ElseIf Вис_R = 16.8 Then
+				iPropValSumSub = "508"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.26624
+			ElseIf Вис_R = 20.5 Then
+				iPropValSumSub = "510"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.31465
+			ElseIf Вис_R = 13.4 Then
+				iPropValSumSub = "606"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.22038
+			ElseIf Вис_R = 17.1 Then
+				iPropValSumSub = "608"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.27898
+			ElseIf Вис_R = 20.8 Then
+				iPropValSumSub = "610"
+				oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.33121
+			End If']
+	'[ Настил
+		Case "DIN 24537-1"
+			iPropValSumSub = "SP/34×38/" & Вис_R & "×3"
+			oPartDef.MassProperties.Mass = volum * 0.00000785 * 0.1189
+			iProperties.PartColor = "Металлическая сетка 05"']
+	'[ ДСП
+		Case "ДСТУ ГОСТ 10632"
+			iPropValSumSub = "ПБ, ІІ, " & Довж_R & "×" & Шир_R & "×" & Вис_R & ""']
+	'[ OSB/3
+		Case "ДСТУ EN 300"
+			iPropValSumSub = "" & Довж_R & "×" & Шир_R & "×" & Вис_R & ""']
+	'[ Дошка/Брус
+		Case "ДСТУ ISO 738"
+			If RevNumb = "Дошка" Then
+				iPropValSumSub = "" & Шир_R & "×" & Вис_R & ""
+			ElseIf RevNumb = "Брус" Then
+				iPropValSumSub = "" & Вис_R & "×" & Шир_R & ""
+			End If
+			iProperties.PartColor = "Желтая сосна — темное морение — с умеренным глянцем"
+			If oSummaryInv("Company").Value = "" Then
+				oSummary(“Title”).Value = "" & RevNumb & " " & iPropValSumSub & ", L=" & Довж_R & " мм"
+			End If']
+	'[ Труба (кругла)
+		Case "ДСТУ ISO 1127"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ EN 10216-1"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 8939"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 8938"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 8936"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 8943"
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""']
+	'[ Труба (квадратна/прямокутна)
+		Case "ДСТУ EN 10210-2"
+			iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & Товщ_R & ""
+		Case "ДСТУ Б В.2.6-8-95"
+			If Шир_R = Вис_R Then
+				iPropValSumSub = "" & Шир_R & "×" & Шир_R & "×" & Товщ_R & ""
+			Else
+				iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & Товщ_R & ""
+			End If
+		Case "ДСТУ 8940"
+			iPropValSumSub = "" & Шир_R & "×" & Шир_R & "×" & Товщ_R & ""']
+	'[ Кутик
+		Case "ДСТУ 2251" '(рівнобокий)
+			iPropValSumSub = "" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 2254-93" '(рівнобокий)
+			iPropValSumSub = "" & Шир_R & "×" & Шир_R & "×" & Товщ_R & ""
+		Case "ДСТУ 2255-93" '(нерівнобокий)
+			iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & Товщ_R & ""
+		Case "ДСТУ 8769" '(нерівнобокий)
+			iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & Товщ_R & ""
+		Case "ДСТУ EN 10056-1" '(рівнобокий/нерівнобокий)
+			iPropValSumSub = "" & Шир_R & "×" & Вис_R & "×" & Товщ_R & ""']
+	'[ Двотавр ДСТУ 8768:2018
+		Case "ДСТУ 8768"
+			Select Case Шир_R
+				Case 100
+					iPropValSumSub = "10"
+					МасПлощ = 12
+				Case 120
+					iPropValSumSub = "12"
+					МасПлощ = 14.7
+				Case 140
+					iPropValSumSub = "14"
+					МасПлощ = 17.4
+				Case 160
+					iPropValSumSub = "16"
+					МасПлощ = 20.2
+				Case 180
+					iPropValSumSub = "18"
+					МасПлощ = 23.4
+				Case 200
+					iPropValSumSub = "20"
+					МасПлощ = 26.8
+				Case 220
+					iPropValSumSub = "22"
+					МасПлощ = 30.6
+				Case 240
+					iPropValSumSub = "24"
+					МасПлощ = 34.8
+				Case 270
+					iPropValSumSub = "27"
+					МасПлощ = 40.2
+				Case 300
+					iPropValSumSub = "30"
+					МасПлощ = 46.2
+				Case 330
+					iPropValSumSub = "33"
+					МасПлощ = 53.8
+				Case 360
+					iPropValSumSub = "36"
+					МасПлощ = 61.9
+				Case 400
+					iPropValSumSub = "40"
+					МасПлощ = 72.6
+				Case 450
+					iPropValSumSub = "45"
+					МасПлощ = 84.7
+				Case 500
+					iPropValSumSub = "50"
+					МасПлощ = 100
+				Case 550
+					iPropValSumSub = "55"
+					МасПлощ = 118
+				Case 600
+					iPropValSumSub = "60"
+					МасПлощ = 138
+			End Select
+			МасОбєм = (МасПлощ*100) * Довж_R']
+	'[ Двотавр ГОСТ 26020-83
+		Case "ГОСТ 26020-83"
+			Select Case Шир_R
+				Case 100
+					iPropValSumSub = "10B1"
+				Case 117.6
+					iPropValSumSub = "12B1"
+				Case 120
+					iPropValSumSub = "12B2"
+				Case 137.4
+					iPropValSumSub = "14B1"
+				Case 140
+					iPropValSumSub = "14B2"
+				Case 157
+					iPropValSumSub = "16B1"
+				Case 160
+					iPropValSumSub = "16B2"
+				Case 177
+					iPropValSumSub = "18B1"
+				Case 180
+					iPropValSumSub = "18B2"
+				Case 193
+					iPropValSumSub = "20S1"
+				Case 195
+					iPropValSumSub = "20K1"
+				Case 198
+					iPropValSumSub = "20K2"
+				Case 200
+					iPropValSumSub = "20B1"
+				Case 226
+					iPropValSumSub = "23S1"
+				Case 227
+					iPropValSumSub = "23K1"
+				Case 230
+					Select Case Вис_R
+						Case 110
+							iPropValSumSub = "23B1"
+						Case 240
+							iPropValSumSub = "23К2"
+					End Select
+				Case 239
+					iPropValSumSub = "24DB1"
+				Case 251
+					iPropValSumSub = "26S1"
+				Case 255
+					Select Case Вис_R
+					Case 180
+						iPropValSumSub = "26S2"
+					Case 260
+						iPropValSumSub = "26K1"
+					End Select
+				Case 258
+					Select Case Вис_R
+						Case 120
+							iPropValSumSub = "26B1"
+						Case 260
+							iPropValSumSub = "26К2"
+					End Select
+				Case 261
+					iPropValSumSub = "26B2"
+				Case 262
+					iPropValSumSub = "26К3"
+				Case 269
+					iPropValSumSub = "27DB1"
+				Case 291
+					iPropValSumSub = "30S1"
+				Case 295
+					Select Case Вис_R
+						Case 140
+							iPropValSumSub = "30B1"
+						Case 200
+							iPropValSumSub = "30S2"
+					End Select
+				Case 296
+					iPropValSumSub = "30К1"
+				Case 299
+					Select Case Вис_R
+						Case 140
+							iPropValSumSub = "30B2"
+						Case 200
+							iPropValSumSub = "30S3"
+					End Select
+				Case 300
+					iPropValSumSub = "30К2"
+				Case 300.6
+					iPropValSumSub = "30DS1"
+				Case 304
+					iPropValSumSub = "30К3"
+				Case 338
+					iPropValSumSub = "35S1"
+				Case 341
+					iPropValSumSub = "35S2"
+				Case 345
+					iPropValSumSub = "35S3"
+				Case 346
+					iPropValSumSub = "35B1"
+				Case 348
+					iPropValSumSub = "35К3"
+				Case 349
+					Select Case Вис_R
+						Case 155
+							iPropValSumSub = "35B2"
+						Case 127
+							iPropValSumSub = "35DB1"
+					End Select
+				Case 353
+					iPropValSumSub = "35К3"
+				Case 360
+					iPropValSumSub = "36DB1"
+				Case 388
+					iPropValSumSub = "40S1"
+				Case 392
+					Select Case Вис_R
+						Case 165
+							iPropValSumSub = "40B1"
+						Case 300
+							iPropValSumSub = "40S2"
+					End Select
+				Case 393
+					iPropValSumSub = "40К1"
+				Case 396
+					Select Case Вис_R
+						Case 165
+							iPropValSumSub = "40B2"
+						Case 300
+							iPropValSumSub = "40S3"
+					End Select
+				Case 397.6
+					iPropValSumSub = "40DS1"
+				Case 399
+					iPropValSumSub = "40DB1"
+				Case 400
+					iPropValSumSub = "40К2"
+				Case 409
+					iPropValSumSub = "40К3"
+				Case 419
+					iPropValSumSub = "40К4"
+				Case 431
+					iPropValSumSub = "40К5"
+				Case 443
+					iPropValSumSub = "45B1"
+				Case 447
+					iPropValSumSub = "45B2"
+				Case 450
+					Select Case Вис_R
+						Case 152
+							iPropValSumSub = "45DB1"
+						Case 180
+							iPropValSumSub = "45DB2"
+					End Select
+				Case 484
+					iPropValSumSub = "50S1"
+				Case 489
+					iPropValSumSub = "50S2"
+				Case 492
+					iPropValSumSub = "50B1"
+				Case 495
+					iPropValSumSub = "50S3"
+				Case 496
+					iPropValSumSub = "50B2"
+				Case 496.2
+					iPropValSumSub = "50DS1"
+				Case 501
+					iPropValSumSub = "50S4"
+				Case 543
+					iPropValSumSub = "55B1"
+				Case 547
+					iPropValSumSub = "55B2"
+				Case 580
+					iPropValSumSub = "60S1"
+				Case 587
+					iPropValSumSub = "60S2"
+				Case 593
+					iPropValSumSub = "60B1"
+				Case 597
+					iPropValSumSub = "60B2"
+				Case 603
+					iPropValSumSub = "60S4"
+				Case 683
+					iPropValSumSub = "70S1"
+				Case 691
+					Select Case Вис_R
+						Case 260
+							iPropValSumSub = "70B1"
+						Case 320
+							iPropValSumSub = "70S2"
+					End Select
+				Case 697
+					iPropValSumSub = "70B2"
+				Case 700
+					iPropValSumSub = "70S3"
+				Case 708
+					iPropValSumSub = "70S4"
+				Case 718
+					iPropValSumSub = "70S5"
+				Case 791
+					iPropValSumSub = "80B1"
+				Case 798
+					iPropValSumSub = "80B2"
+				Case 893
+					iPropValSumSub = "90B1"
+				Case 900
+					iPropValSumSub = "90B2"
+				Case 990
+					iPropValSumSub = "100B1"
+				Case 998
+					iPropValSumSub = "100B2"
+				Case 1006
+					iPropValSumSub = "100B3"
+				Case 1013
+					iPropValSumSub = "100B4"
+			End Select']
+	'[ Двотавр EURONORM 53-62 HEA
+		Case "EURONORM 53-62"
+			Select Case Шир_R
+				Case 96
+					iPropValSumSub = "HE 100 A"
+				Case 114
+					iPropValSumSub = "HE 120 A"
+				Case 133
+					iPropValSumSub = "HE 140 A"
+				Case 152
+					iPropValSumSub = "HE 160 A"
+				Case 171
+					iPropValSumSub = "HE 180 A"
+				Case 190
+					iPropValSumSub = "HE 200 A"
+				Case 210
+					iPropValSumSub = "HE 220 A"
+				Case 230
+					iPropValSumSub = "HE 240 A"
+				Case 250
+					iPropValSumSub = "HE 260 A"
+				Case 270
+					iPropValSumSub = "HE 280 A"
+				Case 290
+					iPropValSumSub = "HE 300 A"
+				Case 310
+					iPropValSumSub = "HE 320 A"
+				Case 330
+					iPropValSumSub = "HE 340 A"
+				Case 350
+					iPropValSumSub = "HE 360 A"
+				Case 390
+					iPropValSumSub = "HE 400 A"
+				Case 440
+					iPropValSumSub = "HE 450 A"
+				Case 490
+					iPropValSumSub = "HE 500 A"
+				Case 540
+					iPropValSumSub = "HE 550 A"
+				Case 590
+					iPropValSumSub = "HE 600 A"
+				Case 640
+					iPropValSumSub = "HE 650 A"
+				Case 690
+					iPropValSumSub = "HE 700 A"
+				Case 790
+					iPropValSumSub = "HE 800 A"
+				Case 890
+					iPropValSumSub = "HE 900 A"
+				Case 990
+					iPropValSumSub = "HE 1000 A"
+			End Select']
+	'[ Двотавр DIN 1025-2 IPB
+		Case "DIN 1025-2"
+			Select Case Шир_R
+				Case 100
+					iPropValSumSub = "IPB 100"
+				Case 120
+					iPropValSumSub = "IPB 120"
+				Case 140
+					iPropValSumSub = "IPB 140"
+				Case 160
+					iPropValSumSub = "IPB 160"
+				Case 180
+					iPropValSumSub = "IPB 180"
+				Case 200
+					iPropValSumSub = "IPB 200"
+				Case 220
+					iPropValSumSub = "IPB 220"
+				Case 240
+					iPropValSumSub = "IPB 240"
+				Case 260
+					iPropValSumSub = "IPB 260"
+				Case 280
+					iPropValSumSub = "IPB 280"
+				Case 300
+					iPropValSumSub = "IPB 300"
+				Case 320
+					iPropValSumSub = "IPB 320"
+				Case 340
+					iPropValSumSub = "IPB 340"
+				Case 360
+					iPropValSumSub = "IPB 360"
+				Case 400
+					iPropValSumSub = "IPB 400"
+				Case 450
+					iPropValSumSub = "IPB 450"
+				Case 500
+					iPropValSumSub = "IPB 500"
+				Case 550
+					iPropValSumSub = "IPB 550"
+				Case 600
+					iPropValSumSub = "IPB 600"
+				Case 650
+					iPropValSumSub = "IPB 650"
+				Case 700
+					iPropValSumSub = "IPB 700"
+				Case 800
+					iPropValSumSub = "IPB 800"
+				Case 900
+					iPropValSumSub = "IPB 900"
+				Case 1000
+					iPropValSumSub = "IPB 1000"
+			End Select']
+	'[ Двотавр DIN 1025-4 IPBv
+		Case"DIN 1025-4"
+			Select Case Шир_R
+				Case 120
+					iPropValSumSub = "IPBv 100"
+				Case 140
+					iPropValSumSub = "IPBv 120"
+				Case 160
+					iPropValSumSub = "IPBv 140"
+				Case 180
+					iPropValSumSub = "IPBv 160"
+				Case 200
+					iPropValSumSub = "IPBv 180"
+				Case 220
+					iPropValSumSub = "IPBv 200"
+				Case 240
+					iPropValSumSub = "IPBv 220"
+				Case 270
+					iPropValSumSub = "IPBv 240"
+				Case 290
+					iPropValSumSub = "IPBv 260"
+				Case 310
+					iPropValSumSub = "IPBv 280"
+				Case 320
+					iPropValSumSub = "IPBv 320/305"
+				Case 340
+					iPropValSumSub = "IPBv 300"
+				Case 359
+					iPropValSumSub = "IPBv 320"
+				Case 377
+					iPropValSumSub = "IPBv 340"
+				Case 395
+					iPropValSumSub = "IPBv 360"
+				Case 432
+					iPropValSumSub = "IPBv 400"
+				Case 478
+					iPropValSumSub = "IPBv 450"
+				Case 524
+					iPropValSumSub = "IPBv 500"
+				Case 572
+					iPropValSumSub = "IPBv 550"
+				Case 620
+					iPropValSumSub = "IPBv 600"
+				Case 668
+					iPropValSumSub = "IPBv 650"
+				Case 716
+					iPropValSumSub = "IPBv 700"
+				Case 814
+					iPropValSumSub = "IPBv 800"
+				Case 910
+					iPropValSumSub = "IPBv 900"
+				Case 1008
+					iPropValSumSub = "IPBv 100"
+			End Select']
+	'[ Двотавр DIN 1025-5 IPE
+		Case "DIN 1025-5"
+			Select Case Шир_R
+				Case 80
+					iPropValSumSub = "IPE 80"
+				Case 100
+					iPropValSumSub = "IPE 100"
+				Case 120
+					iPropValSumSub = "IPE 120"
+				Case 140
+					iPropValSumSub = "IPE 140"
+				Case 160
+					iPropValSumSub = "IPE 160"
+				Case 180
+					iPropValSumSub = "IPE 180"
+				Case 200
+					iPropValSumSub = "IPE 200"
+				Case 220
+					iPropValSumSub = "IPE 220"
+				Case 240
+					iPropValSumSub = "IPE 240"
+				Case 270
+					iPropValSumSub = "IPE 270"
+				Case 300
+					iPropValSumSub = "IPE 300"
+				Case 330
+					iPropValSumSub = "IPE 330"
+				Case 360
+					iPropValSumSub = "IPE 360"
+				Case 400
+					iPropValSumSub = "IPE 400"
+				Case 450
+					iPropValSumSub = "IPE 450"
+				Case 500
+					iPropValSumSub = "IPE 500"
+				Case 550
+					iPropValSumSub = "IPE 550"
+				Case 600
+					iPropValSumSub = "IPE 600"
+			End Select']
+	'[ Швелер У ДСТУ 3436-96
+		Case "ДСТУ 3436-96"
+			If oProject("Stock Number").Value = "У" Then
+				Select Case Шир_R
+					Case 50
+						iPropValSumSub = "5У"
+					Case 65
+						iPropValSumSub = "6,5У"
+					Case 80
+						iPropValSumSub = "8У"
+					Case 100
+						iPropValSumSub = "10У"
+					Case 120
+						iPropValSumSub = "12У"
+					Case 140
+						iPropValSumSub = "14У"
+					Case 160
+						Select Case Вис_R
+							Case 64
+								iPropValSumSub = "16У"
+							Case 68
+								iPropValSumSub = "16аУ"
+							End Select
+					Case 180
+						Select Case Вис_R
+							Case 70
+								iPropValSumSub = "18У"
+							Case 74
+								iPropValSumSub = "18аУ"
+							End Select
+					Case 200
+						iPropValSumSub = "20У"
+					Case 220
+						iPropValSumSub = "22У"
+					Case 240
+						iPropValSumSub = "24У"
+					Case 270
+						iPropValSumSub = "27У"
+					Case 300
+						iPropValSumSub = "30У"
+					Case 330
+						iPropValSumSub = "33У"
+					Case 360
+						iPropValSumSub = "36У"
+					Case 400
+						iPropValSumSub = "40У"
+				End Select']
+	'[ Швелер П ДСТУ 3436-96
+			ElseIf oProject("Stock Number").Value = "П" Then
+				Select Case Шир_R
+					Case 50
+						iPropValSumSub = "5П"
+					Case 65
+						iPropValSumSub = "6,5П"
+					Case 80
+						iPropValSumSub = "8П"
+					Case 100
+						iPropValSumSub = "10П"
+					Case 120
+						iPropValSumSub = "12П"
+					Case 140
+						iPropValSumSub = "14П"
+					Case 160
+						Select Case Вис_R
+							Case 64
+								iPropValSumSub = "16П"
+							Case 68
+								iPropValSumSub = "16аП"
+							End Select
+					Case 180
+						Select Case Вис_R
+							Case 70
+								iPropValSumSub = "18П"
+							Case 74
+								iPropValSumSub = "18аП"
+							End Select
+					Case 200
+						iPropValSumSub = "20П"
+					Case 220
+						iPropValSumSub = "22П"
+					Case 240
+						iPropValSumSub = "24П"
+					Case 270
+						iPropValSumSub = "27П"
+					Case 300
+						iPropValSumSub = "30П" 
+					Case 330
+						iPropValSumSub = "33П"
+					Case 360
+						iPropValSumSub = "36П"
+					Case 400
+						iPropValSumSub = "40П"
+				End Select
+			End If']
+	'[ Швелер DIN 1026-1
+		Case "DIN 1026-1"
+			Select Case Шир_R
+				Case 30
+					Select Case Вис_R
+						Case 15
+							iPropValSumSub = "U30×15"
+						Case 33
+							iPropValSumSub = "U30"
+					End Select
+				Case 40
+					Select Case Вис_R
+						Case 20
+							iPropValSumSub = "U40×20"
+						Case 35
+							iPropValSumSub = "U40"
+					End Select
+				Case 50
+					Select Case Вис_R
+						Case 25
+							iPropValSumSub = "U50×25"
+						Case 38
+							iPropValSumSub = "U50"
+					End Select
+				Case 60
+					iPropValSumSub = "U60"
+				Case 65
+					iPropValSumSub = "U65"
+				Case 80
+					iPropValSumSub = "U80"
+				Case 100
+					iPropValSumSub = "U100"
+				Case 120
+					iPropValSumSub = "U120"
+				Case 140
+					iPropValSumSub = "U140"
+				Case 160
+					iPropValSumSub = "U160"
+				Case 180
+					iPropValSumSub = "U180"
+				Case 200
+					iPropValSumSub = "U200"
+				Case 220
+					iPropValSumSub = "U220"
+				Case 240
+					iPropValSumSub = "U240"
+				Case 260
+					iPropValSumSub = "U260"
+				Case 280
+					iPropValSumSub = "U280"
+				Case 300
+					iPropValSumSub = "U300"
+				Case 320
+					iPropValSumSub = "U320"
+				Case 350
+					iPropValSumSub = "U350"
+				Case 380
+					iPropValSumSub = "U380"
+				Case 400
+					iPropValSumSub = "U400"
+			End Select']
+	'[ Швелер DIN 1026-2
+		Case "DIN 1026-2"
+			Select Case Шир_R
+				Case 80
+					iPropValSumSub = "UPE80"
+				Case 100
+					iPropValSumSub = "UPE100"
+				Case 120
+					iPropValSumSub = "UPE120"
+				Case 140
+					iPropValSumSub = "UPE140"
+				Case 160
+					iPropValSumSub = "UPE160"
+				Case 180
+					iPropValSumSub = "UPE180"
+				Case 200
+					iPropValSumSub = "UPE200"
+				Case 220
+					iPropValSumSub = "UPE220"
+				Case 240
+					iPropValSumSub = "UPE240"
+				Case 270
+					iPropValSumSub = "UPE270"
+				Case 300
+					iPropValSumSub = "UPE300"
+				Case 330
+					iPropValSumSub = "UPE330"
+				Case 360
+					iPropValSumSub = "UPE360"
+				Case 400
+					iPropValSumSub = "UPE400"
+			End Select']
+	End Select
+	'[Автоматичне заповнення найменування
+	
+	If oPartDef.BOMStructure = BOMStructureEnum.kPurchasedBOMStructure Then
+		oProject("Part Number").Value = ""
+	Else
+		Try : oProject("Part Number").Value = sName.Substring(0, sName.IndexOf(" ")) : Catch : End Try
+	End If
+	oSummary("Title").Value = sName.Remove(0, sName.IndexOf(" ") + 1)
+	
+	Try : oCustom("Mass_size").Value = oPartDef.MassProperties.Mass : Catch : oCustom.Add(oPartDef.MassProperties.Mass, "Mass_size") : End Try
+	
+	If oProject("Catalog Web Link").Value = "ДСТУ ISO 738" Then
+		Try : oCustom("Stren_steel").Value = "Деревина" : Catch : oCustom.Add("Деревина", "Stren_steel") : End Try
+	Else
+		Try : oCustom("Stren_steel").Value = sMatName.Substring(0, sMatName.IndexOf(" ")) 'Клас міцності
+		Catch : oCustom.Add(sMatName.Substring(0, sMatName.IndexOf(" ")), "Stren_steel") : End Try
+		Try : oCustom("Stan_steel").Value = sMatName.Remove(0, sMatName.IndexOf(" ") + 1) 'Стандарт матеріала
+		Catch : oCustom.Add(sMatName.Remove(0, sMatName.IndexOf(" ") + 1), "Stan_steel") : End Try
+	End If
+	
+	Dim oMain_size, oArea_Color As Inventor.Property
+	Try : oMain_size = oCustom("Main_size") : Catch : oMain_size = oCustom.Add("", "Main_size") : End Try
+	Try : oArea_Color = oCustom("Area_Color") : Catch : oArea_Color = oCustom.Add("", "Area_Color") : End Try
+	
+	If Веб_сайт = "ДСТУ 8540" Or Веб_сайт = "ДСТУ 8783" Or Веб_сайт = "ГОСТ 8706-78" Then 'Листи
+		oMain_size.Value = oUserParams("Area_Zag_1").Value / 1000000
+		Dim Area_Color As Double = iProperties.Area/1000000
+		oArea_Color.Value = Round(Area_Color, 3)
+		oPartDef.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kEachBOMQuantity)
+	ElseIf Веб_сайт = "ДСТУ ISO 1127" Or Веб_сайт = "ДСТУ EN 10216-1" Or Веб_сайт = "ДСТУ 8939" Or Веб_сайт = "ДСТУ 8938" Or Веб_сайт = "ДСТУ 8936" _
+		Or Веб_сайт = "ДСТУ 8943" Then 'Круглі труби
+		oArea_Color.Value = Round((Довж_R*(PI * Шир_R))/ 1000000, 3)
+		oMain_size.Value = Довж_R / 1000
+		oPartDef.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kParameterBOMQuantity, ParamLong)
+	ElseIf Веб_сайт = "ДСТУ EN 10210-2" Or Веб_сайт = "ДСТУ Б В.2.6-8-95" Or Веб_сайт = "ДСТУ 8940" Then 'Квадратні/прямокутні труби
+		oArea_Color.Value = Round(((iProperties.Area/2)/ 1000000)*1.03, 3)
+		oMain_size.Value = Довж_R / 1000
+		oPartDef.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kParameterBOMQuantity, ParamLong)
+	Else 'Інші перерізи
+		oArea_Color.Value = Round(iProperties.Area / 1000000, 3)
+		If Довж_R = Шир_R Then
+			oMain_size.Value = Вис_R / 1000
+		Else
+			oMain_size.Value = Довж_R / 1000
+		End If
+		oPartDef.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kParameterBOMQuantity, ParamLong)
+	End If
+	
+	If oSummaryInv("Company").Value = "" Then
+		If Веб_сайт = "ДСТУ 4738" Or Веб_сайт = "ДСТУ 4746" Or Веб_сайт = "ДСТУ 3671-97" Then
+			If Шир_R = Довж_R Then
+				SumTit = "" & RevNumb & " " & Шир_R & ", L=" & Вис_R & " мм"
+			Else
+				SumTit = "" & RevNumb & " " & Вис_R & ", L=" & Довж_R & " мм"
+			End If
+		ElseIf Веб_сайт = "ДСТУ EN 10061" Then
+			SumTit = "" & RevNumb & " " & Вис_R & ", L=" & Довж_R & " мм"
+		ElseIf Веб_сайт = "ДСТУ 8540" Then
+			SumTit = "" & RevNumb & " " & Вис_R & "-" & Довж_R & "×" & Шир_R & ""
+		ElseIf Веб_сайт = "ДСТУ 8783" Or Веб_сайт = "ГОСТ 8706-78" Then
+			SumTit = "" & RevNumb & " " & iPropValSumSub & "×" & Довж_R & "×" & Шир_R & ""
+		ElseIf Веб_сайт = "DIN 24537-1" Then
+			SumTit = "" & RevNumb & " " & iPropValSumSub & ", " & Довж_R & "×" & Шир_R & ""
+		ElseIf Веб_сайт = "ДСТУ ГОСТ 10632" Or Веб_сайт = "ДСТУ EN 300" Then
+			SumTit = "" & RevNumb & " " & iPropValSumSub & ""
+		ElseIf Веб_сайт <> "ДСТУ 4738" Or Веб_сайт <> "ДСТУ 3671-97" Or Веб_сайт <> "ДСТУ 4746" Or Веб_сайт <> "ДСТУ EN 10061" Or Веб_сайт <> "ДСТУ 8540" Or Веб_сайт <> "ДСТУ 8783" _
+			Or Веб_сайт <> "ГОСТ 8706-78" Or Веб_сайт <> "ДСТУ ГОСТ 10632" Or Веб_сайт <> "ДСТУ EN 300" Or Веб_сайт <> "" Then
+			SumTit = "" & RevNumb & " " & iPropValSumSub & ", L=" & Довж_R & " мм"
+		End If
+		oSummary(“Title”).Value = SumTit
+	End If
+	If Not String.IsNullOrEmpty(iPropValSumSub) Then oSummary("Subject").Value = iPropValSumSub']
+
+	InventorVb.DocumentUpdate()
+End Sub

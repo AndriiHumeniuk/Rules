@@ -1,0 +1,9 @@
+﻿Dim oDoc As AssemblyDocument = ThisDoc.Document
+If oDoc.FileSaveCounter <> 0 Then
+	Try
+		Dim sName As String = System.IO.Path.GetFileNameWithoutExtension(oDoc.FullDocumentName)
+		oDoc.PropertySets("Design Tracking Properties")("Part Number").Value = sName.Substring(0,sName.IndexOf(" "))
+		oDoc.PropertySets("Inventor Summary Information")("Title").Value = sName.Remove(0, sName.IndexOf(" ") + 1)
+	Catch :	End Try
+End If
+oDoc.Update()

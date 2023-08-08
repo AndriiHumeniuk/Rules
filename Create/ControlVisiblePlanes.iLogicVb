@@ -1,0 +1,52 @@
+﻿Private Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	Dim oTM As TransactionManager = oInvApp.TransactionManager
+	If TypeOf oDoc Is PartDocument Then
+		Dim oPDoc As PartDocument = oDoc
+		Dim oPDef As PartComponentDefinition = oDoc.ComponentDefinition
+		Dim bVisible As Boolean = WhatDoing()
+		Dim newTM As Transaction = oTM.StartTransaction(oPDoc, "VisiblePlanes")
+		Call ControlPlaves(oPDef, bVisible)
+		newTM.End()
+	Else If TypeOf oDoc Is AssemblyDocument Then
+		Dim oADoc As AssemblyDocument = oDoc
+		Dim oADef As AssemblyComponentDefinition = oADoc.ComponentDefinition
+		Dim bVisible As Boolean = WhatDoing()
+		Dim newTM As Transaction = oTM.StartTransaction(oADoc, "VisiblePlanes")
+		Call ControlPlaves(oADef, bVisible)
+		For Each oRefDoc As Document In oADoc.AllReferencedDocuments
+			If oRefDoc.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+				Dim oAsmDoc As AssemblyDocument = oRefDoc
+				Dim oRefDef As AssemblyComponentDefinition = oAsmDoc.ComponentDefinition
+				If oRefDef.BOMStructure <> BOMStructureEnum.kPhantomBOMStructure Then
+					Call ControlPlaves(oRefDef, bVisible)
+				End If
+			Else If oRefDoc.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
+				Dim oPartDoc As PartDocument = oRefDoc
+				Dim oRefDef As PartComponentDefinition = oPartDoc.ComponentDefinition
+				If oRefDef.BOMStructure <> BOMStructureEnum.kPhantomBOMStructure Then
+					Call ControlPlaves(oRefDef, bVisible)
+				End If
+			End If
+		Next
+		newTM.End()
+	End If
+End Sub
+
+Private Function WhatDoing() As Boolean
+	Dim digResult As DialogResult = MessageBox.Show("Площини повинні бути видимі?", "Видимість робочих площин", _
+													MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	If digResult.ToString = "No" Then
+		Return False
+	End If
+	Return True
+End Function
+
+
+Private Function ControlPlaves(ByVal oDef As ComponentDefinition, Optional ByVal bVisible As Boolean = False)
+	For Each oWP As WorkPlane In oDef.WorkPlanes
+		On Error Resume Next
+		oWP.Visible = bVisible
+	Next
+End Function

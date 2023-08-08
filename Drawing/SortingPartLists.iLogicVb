@@ -1,0 +1,42 @@
+﻿Dim oDoc As Document = ThisDoc.Document
+Dim oTM As TransactionManager = ThisApplication.TransactionManager
+Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+If TypeOf oDoc Is DrawingDocument Then
+	Dim oDrawDoc As DrawingDocument = oDoc
+	Dim activPosY AS Double
+	For Each oSheet As Sheet In oDrawDoc.Sheets
+		For Each oList As PartsList In oSheet.PartsLists
+			Dim newTM As Transaction = oTM.StartGlobalTransaction(oDrawDoc, "Sorting " & oList.Title)
+			If oList.Title = "СПИСОК ДЕТАЛЕЙ" Or oList.Title = "КТВ Список деталей" Then
+				oList.Sort("Поз.", True)
+			Else If oList.Title = "Зведена специфікація металопрокату" Then
+				oList.Sort("Наймену- вання", True, "Номер і розмір профіля", False)
+				activPosY = oList.RangeBox.MinPoint.Y
+				For Each oRow As PartsListRow In oList.PartsListRows
+					If oRow.Item(1).Value = "Лист" Or oRow.Item(1).Value = "Гума" Or oRow.Item(1).Value = "" Then
+						oRow.Visible = False
+					Else
+						oRow.Visible = True
+					End If
+				Next
+				oList.Position = oTG.CreatePoint2d(oList.Position.X, activPosY + (oList.RangeBox.MaxPoint.Y - oList.RangeBox.MinPoint.Y))
+			Else If oList.Title = "Зведена специфікація листового металу" Then
+				oList.Sort("Номер і розмір", False, "Мате- ріал", True)
+				activPosY = oList.RangeBox.MinPoint.Y
+				For Each oRow As PartsListRow In oList.PartsListRows
+					If oRow.Item(2).Value = "ДСТУ 8540" Or oRow.Item(2).Value = "ГОСТ 7338-90" Or oRow.Item(1).Value = "" Then
+						oRow.Visible = True
+					Else
+						oRow.Visible = False
+					End If
+				Next
+				oList.Position = oTG.CreatePoint2d(oList.Position.X, activPosY + (oList.RangeBox.MaxPoint.Y - oList.RangeBox.MinPoint.Y))
+			Else If oList.Title = "Відомість виробів і матеріалів" Then
+				oList.Sort("Стандарт", True, "Найменування", False)
+			End If
+			newTM.End
+		Next	
+	Next
+Else
+	MessageBox.Show("Дане правило використовуєтсья виключно для документів креслення.", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+End If

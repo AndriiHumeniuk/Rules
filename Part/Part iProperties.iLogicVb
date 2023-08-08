@@ -1,0 +1,25 @@
+﻿If iProperties.Mass <> 0 Then
+	Dim oDoc As PartDocument = ThisDoc.Document
+	Dim oBOMEnum As BOMStructureEnum = oDoc.ComponentDefinition.BOMStructure
+	If oBOMEnum = BOMStructureEnum.kPurchasedBOMStructure Then
+		iProperties.Value("Project", "Part Number") = ""
+	Else
+		Try
+			name = ThisDoc.FileName(False)
+			iProperties.Value("Project", "Part Number") = name.Substring(0, name.IndexOf(" "))
+		Catch
+		End Try
+	End If
+	iLogicVb.RunExternalRule("3_Selector of blanks")
+End If
+
+If iProperties.Value("Project", "Catalog Web Link") = "ДСТУ ISO 738" Then
+	iProperties.Value("Custom", "Stren_steel") = "Деревина"
+Else
+	Dim mat As String
+	mat = iProperties.Material
+	iProperties.Value("Custom", "Stren_steel") = mat.Substring(0,mat.IndexOf(" ")) 'Клас міцності
+	iProperties.Value("Custom", "Stan_steel") = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала
+End If
+
+InventorVb.DocumentUpdate()

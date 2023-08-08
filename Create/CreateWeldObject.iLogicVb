@@ -1,0 +1,37 @@
+﻿Private Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	Dim oMatrix As Matrix = oInvApp.TransientGeometry.CreateMatrix
+	If Not TypeOf oDoc Is AssemblyDocument Then Exit Sub
+	Dim oAsmDoc As AssemblyDocument = oDoc
+	Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
+	Dim dMass As Double = GetMassComponent(oAsmDoc.AllReferencedDocuments, oOccs)
+	Dim oOcc As ComponentOccurrence	
+	Try
+		oOcc = oOccs.ItemByName("Наплавлений метал")
+	Catch
+		oOcc = oOccs.AddVirtual("Наплавлений метал", oMatrix)
+		oOcc.Name = "Наплавлений метал"
+	End Try
+	Dim oOccDoc As Document = oOcc.Definition.Document
+	oOccDoc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value = "Наплавлений метал"
+	oOcc.MassProperties.Mass = dMass * 0.01
+End Sub
+
+Private Function GetMassComponent(ByVal oRefDocs As DocumentsEnumerator, ByVal oOccs As ComponentOccurrences) As Double
+	Dim dMass As Double
+	For Each oRefDoc As Document In oRefDocs
+		If TypeOf oRefDoc Is PartDocument Then
+			If oOccs.AllReferencedOccurrences(oRefDoc).Count > 0 Then
+				Dim oPartDoc As PartDocument = oRefDoc
+				Dim oPartDef As PartComponentDefinition = oPartDoc.ComponentDefinition
+				If oPartDef.BOMStructure <> BOMStructureEnum.kPurchasedBOMStructure Then
+					If Replace(oPartDoc.ActiveMaterial.Item("physmat_Type").Value,"physmat_", "") = "metal" Then
+						dMass += oPartDef.MassProperties.Mass * oOccs.AllReferencedOccurrences(oRefDoc).Count
+					End If
+				End If
+			End If
+		End If
+	Next
+	Return dMass
+End Function

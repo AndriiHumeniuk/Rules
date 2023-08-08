@@ -1,0 +1,87 @@
+﻿'Sub Main()
+'	Dim oDoc As Document = ThisApplication.ActiveDocument
+'	Dim oDocName As String = System.IO.Path.GetFileName(oDoc.FullFileName) 
+'	MsgBox(oDocName,,"Good Document!!!")
+'	SharedVariable("docName") = oDocName
+'	Trace.WriteLine("Start Data")
+'	Dim oAppEvents As ApplicationEvents = ThisApplication.ApplicationEvents
+'    AddHandler oAppEvents.OnOpenDocument, AddressOf ApplicationEvents_OnOpenDocument
+'    AddHandler oAppEvents.OnCloseDocument, AddressOf ApplicationEvents_OnCloseDocument
+'End Sub
+
+'Sub ApplicationEvents_OnOpenDocument(DocumentObject As _Document, FullDocumentName As String, BeforeOrAfter As EventTimingEnum, Context As NameValueMap, ByRef HandlingCode As HandlingCodeEnum)
+'	If BeforeOrAfter = EventTimingEnum.kAfter Then
+'		Dim sName As String = System.IO.Path.GetFileName(FullDocumentName) 
+'		Dim aName As String = SharedVariable("docName")
+'			If sName = aName Then
+'				MsgBox(aName & " = " & sName,,"Same Name!!!")	
+'			    SharedVariable("Start") = Date.Now
+'			    Trace.WriteLine("onOpen Data")
+'			End If
+'        SharedVariable.Remove("docName")
+'		Dim oAppEvents As ApplicationEvents = ThisApplication.ApplicationEvents
+'        RemoveHandler oAppEvents.OnOpenDocument, AddressOf ApplicationEvents_OnOpenDocument
+'		oAppEvents = Nothing
+'    End If
+'End Sub
+
+'Sub ApplicationEvents_OnCloseDocument(DocumentObject As _Document, FullDocumentName As String, BeforeOrAfter As EventTimingEnum, Context As NameValueMap, ByRef HandlingCode As HandlingCodeEnum)
+'    If BeforeOrAfter = EventTimingEnum.kBefore Then
+'        Dim oAppEvents As ApplicationEvents = ThisApplication.ApplicationEvents
+'        Dim sName As String = System.IO.Path.GetFileName(FullDocumentName)
+'        Dim timeS As Date = SharedVariable("Start")
+'        Dim ts As TimeSpan = Date.Now - timeS
+'        Dim elapsedTime As String = ts.ToString("dd' Days, 'hh' Hours, 'mm' Min, 'ss'.'ff' Sec'")
+'        Dim result = MsgBox(elapsedTime, MessageBoxButtons.YesNo, "Time Worked on Project:  " & sName)
+'        Trace.WriteLine("onClose Data")
+'        If (result = MsgBoxResult.No) Then
+'            SharedVariable.Remove("Start")
+'            RemoveHandler oAppEvents.OnOpenDocument, AddressOf ApplicationEvents_OnOpenDocument
+'            RemoveHandler oAppEvents.OnCloseDocument, AddressOf ApplicationEvents_OnCloseDocument
+'            oAppEvents = Nothing
+'            MsgBox("No Export!!!", , "Quit")
+'            Trace.WriteLine("No Export")
+'            Exit Sub
+'        End If
+'        GoExcel.Open("C:\TEMP\1.xlsx", "Sheet1")
+'        Trace.WriteLine("Export Excel") 
+'        Dim RowStart As Integer = 2
+'        Dim RowEnd As Integer = 1000
+'        Dim rowFound As Integer = 0
+'        For count = RowStart To RowEnd
+'            If GoExcel.CellValue("A" & count) = sName Then
+'                rowFound = count
+'                Exit For
+'            End If
+'        Next
+'        Dim i As Integer = 0
+'        For count = RowStart To RowEnd
+'            If String.IsNullOrEmpty(GoExcel.CellValue("A" & count)) Then 
+'                i = i + 1
+'            End If
+'        Next
+'        Dim Row As Integer = RowEnd - i + 1
+'		Dim nDate As String = Date.Now.ToString
+'        If rowFound > 0 Then
+'            MsgBox("Add Data on Row " & rowFound, , "Export to Excel")
+'			Dim oldElapsedTime As String = GoExcel.CellValue("C" & rowFound)
+'            Dim oldTimeSpan As TimeSpan = TimeSpan.ParseExact(oldElapsedTime, "dd' Days, 'hh' Hours, 'mm' Min, 'ss'.'ff' Sec'", Nothing)
+'            Dim newTimeSpan As TimeSpan = oldTimeSpan.Add(ts)
+'            Dim newElapsedTime As String = newTimeSpan.ToString("dd' Days, 'hh' Hours, 'mm' Min, 'ss'.'ff' Sec'")
+'            GoExcel.CellValue("B" & rowFound) = nDate
+'		    GoExcel.CellValue("C" & rowFound) = newElapsedTime
+			
+'        Else
+'            MsgBox("Inserting Data on Row " & Row, , "Export to Excel")
+'            GoExcel.CellValue("A" & Row) = sName
+'			GoExcel.CellValue("B" & Row) = nDate
+'            GoExcel.CellValue("C" & Row) = elapsedTime
+'        End If
+'        GoExcel.Save()
+'        GoExcel.Close()
+'        SharedVariable.Remove("Start")
+'        RemoveHandler oAppEvents.OnOpenDocument, AddressOf ApplicationEvents_OnOpenDocument
+'        RemoveHandler oAppEvents.OnCloseDocument, AddressOf ApplicationEvents_OnCloseDocument
+'        oAppEvents = Nothing
+'    End If
+'End Sub

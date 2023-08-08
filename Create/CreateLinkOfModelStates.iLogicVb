@@ -1,0 +1,29 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oTM As TransactionManager = oInvApp.TransactionManager
+		Dim oADoc As AssemblyDocument = oDoc
+		Dim oADef As AssemblyComponentDefinition = oADoc.ComponentDefinition
+		Dim sExModState As String = oADoc.ModelStateName
+		Dim activeMember As MemberEditScopeEnum = oADef.ModelStates.MemberEditScope
+		Dim newTM As Transaction = oTM.StartTransaction(oADoc, "CreateLinkOfModelStates")
+		oADef.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+		For Each oMS As ModelState In oADef.ModelStates
+			oMS.Activate()
+			Call CreatLinkMS(oADef.Occurrences, oMS.Name)			
+		Next
+		If activeMember <> MemberEditScopeEnum.kEditActiveMember Then
+			oADef.ModelStates.MemberEditScope = activeMember
+		End If
+		oADef.ModelStates.Item(sExModState).Activate()
+		newTM.End()
+	End If
+End Sub
+
+Private Function CreatLinkMS(ByVal oOccs As ComponentOccurrences, ByVal sModName As String)
+	For Each oOcc As ComponentOccurrence In oOccs
+		On Error Resume Next
+		oOcc.ActiveModelState = sModName
+	Next
+End Function

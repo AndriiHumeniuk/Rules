@@ -1,0 +1,204 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+'	Dim SW As Stopwatch = New Stopwatch
+'	SW.Start()
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oAssDoc As AssemblyDocument = oDoc
+		If CheckDocMiss(oAssDoc) Then Exit Sub
+		Dim oDef As AssemblyComponentDefinition = oDoc.ComponentDefinition
+		Dim oBOM As BOM = oDef.BOM
+		Dim oBOMViewPO As BOMView = GetBOMpartsOnly(oInvApp, oBOM)
+		If IsNothing(oBOMViewPO) Then Exit Sub
+		Dim oBomRows As BOMRowsEnumerator = oBOMViewPO.BOMRows
+		
+		Dim sFullDocName As String = oDoc.FullDocumentName
+		Dim sJobBOMName As String = String.Concat(sFullDocName.Substring(0, sFullDocName.IndexOf(".iam")), "(Parts only)", ".xlsm")
+		
+		Try
+			IO.File.Copy("\\Comp59\Work SP\Templates\Rules\BOM\BOM(Parts only).xlsm", sJobBOMName, True)
+		Catch ex As Exception	
+			MessageBox.Show(ex.Message)
+		End Try
+		
+	    Dim oProgressBar As Inventor.ProgressBar
+		oProgressBar = oInvApp.CreateProgressBar(False, oBomRows.Count, "Exporting parameters... ")
+		
+		Dim oPropComps As New List(Of PropertiesOfComponent)		
+		oPropComps.AddRange(GetPropOfComps(oInvApp, oBomRows, oProgressBar))
+		Call WritingExcelBOM(oPropComps, sJobBOMName, oProgressBar)
+		
+		oProgressBar.Close()
+			
+		Try : excelApp = GoExcel.Application.Run("'" & sJobBOMName & "'!Form_supply")
+		Catch :	Finally : excelApp = Nothing : End Try
+		GoExcel.Save			
+		Process.Start(sJobBOMName)
+	Else
+		MessageBox.Show("This rule can only be run in an assembly or a drawing files.", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	End If
+'	SW.Stop()
+'	MessageBox.Show("Час виконання = " & SW.ElapsedMilliseconds & " milliseconds", "Таймер")
+End Sub
+
+Public Function GetPropOfComps(oInvApp As Inventor.Application,
+								ByVal oBomRows As BOMRowsEnumerator,
+								ByRef oProgressBar As Inventor.ProgressBar) As List(Of PropertiesOfComponent)
+	Dim oPropComps As New List(Of PropertiesOfComponent)
+	Dim sFile As String = "\\COMP59\Work SP\Templates\Rules\Role and category.xlsx"
+	Dim oPropSets As PropertySets
+	Dim oUserParams As UserParameters
+	
+	GoExcel.Open(sFile, "SelectNumb")
+	GoExcel.DisplayAlerts = False
+	For i As Integer = 1 To oBomRows.Count
+		Dim oRow As BOMRow = oBomRows.Item(i)	
+		Dim oCompDef As ComponentDefinition = oRow.ComponentDefinitions.Item(1)
+		
+		oPropSets = oCompDef.Document.PropertySets		
+		oUserParams = oCompDef.Parameters.UserParameters
+		
+		Dim oInventorSummaryInformation As PropertySet = oPropSets("Inventor Summary Information")
+		Dim oDesignTrackingPropertySet As PropertySet = oPropSets("Design Tracking Properties")
+		Dim oCustomPropertySet As PropertySet = oPropSets("Inventor User Defined properties")
+		
+		Dim oRevNumb, oStandard, sStren_steel, sMain_size, sArea_1 As String
+		oRevNumb = oInventorSummaryInformation("Revision Number").Value
+		oStandard = oDesignTrackingPropertySet("Catalog Web Link").Value
+		Try : sStren_steel = oCustomPropertySet("Stren_steel").Value : Catch : End Try
+		Try : sMain_size = oCustomPropertySet("Main_size").Value : Catch : End Try
+		Try : sArea_1 = oUserParams("Area_1").Value : Catch : End Try
+		
+		GoExcel.FindRow(sFile, "SelectNumb", "Role", "<=", oRevNumb, "Category", "<=", oStandard)
+		oTotlNumb = GoExcel.CurrentRowValue("TotlNumb")
+		oMeasu = GoExcel.CurrentRowValue("Measu")
+		
+		oPropComps.Add(New PropertiesOfComponent(oRevNumb, _
+												oInventorSummaryInformation("Title").Value, _
+												oDesignTrackingPropertySet("Part Number").Value, _
+												oInventorSummaryInformation("Subject").Value, _
+												oStandard, _
+												oRow.ItemQuantity, _
+												oTotlNumb, _
+												oMeasu,
+												oCompDef.BOMStructure,
+												oCompDef.MassProperties.Volume,
+												sStren_steel,
+												sMain_size,
+												sArea_1))
+				
+		oProgressBar.Message = ("Exporting parts parameters in Excel. Progress " & i & " of " & oBomRows.Count & ".")
+        oProgressBar.UpdateProgress
+	Next i
+	GoExcel.Close()
+	Return oPropComps
+End Function
+
+Private Function WritingExcelBOM(ByVal oPropComps As List(Of PropertiesOfComponent),
+								ByVal sJobBOMName As String,
+								ByRef oProgressBar As Inventor.ProgressBar)
+	oProgressBar.Message = ("Loading... ")
+	oProgressBar.UpdateProgress
+	GoExcel.Open(sJobBOMName, "BOM(Import)")
+	Static iCurrentRow As Integer = 2
+	For Each oPropComp As PropertiesOfComponent In oPropComps
+		If oPropComp.TotlNumb <= 1300 And oPropComp.oBOMStruc = BOMStructureEnum.kNormalBOMStructure Then
+			If oPropComp.TotlNumb >= 1000 And oPropComp.TotlNumb < 1211 Then
+				oPropComp.TotlNumb = oPropComp.TotlNumb - Round((oPropComp.Volume / oPropComp.Area_1)*10, 3)
+			End If
+			GoExcel.CellValue("A" & iCurrentRow) = oPropComp.RevNumb & " " & oPropComp.Subject & ", " & oPropComp.Stand & vbLf &
+												"Матеріал: " & oPropComp.Stren_steel '& " " & oStan.Value
+			GoExcel.CellValue("B" & iCurrentRow) = oPropComp.Main_size * oPropComp.QTY
+			GoExcel.CellValue("C" & iCurrentRow) = oPropComp.Measu
+		Else
+			GoExcel.CellValue("A" & iCurrentRow) = oPropComp.RevNumb & " " & oPropComp.Stand & vbLf & oPropComp.Subject
+			If oPropComp.Stand = "ISO 606" Or oPropComp.Stand = "ДСТУ ГОСТ 13568" Then
+				GoExcel.CellValue("B" & iCurrentRow) = oPropComp.Main_size
+				GoExcel.CellValue("C" & iCurrentRow) = oPropComp.Measu
+			Else
+				GoExcel.CellValue("B" & iCurrentRow) = oPropComp.QTY
+				GoExcel.CellValue("C" & iCurrentRow) = "шт."
+			End If
+		End If
+		GoExcel.CellValue("D" & iCurrentRow) = oPropComp.TotlNumb
+		
+		Dim ExSubj As String = oPropComp.Subject
+		If ExSubj.Contains("×") Then
+			GoExcel.CellValue("E" & iCurrentRow) = ExSubj.Substring(0,ExSubj.IndexOf("×"))
+		End If
+		iCurrentRow += 1
+	Next
+End Function
+
+Private Function GetBOMpartsOnly(ByVal oInvApp As Inventor.Application, ByVal oBOM As BOM) As BOMView
+	Dim oLanguageBOM As String
+	Select Case oInvApp.LanguageCode
+	Case "en-US"
+		oLanguageBOM = "Parts Only"
+	Case "ru-RU"
+		oLanguageBOM = "Только детали"
+	Case Else
+		Exit Function
+	End Select
+	If oBOM.PartsOnlyViewEnabled = False Then
+		oBOM.PartsOnlyViewEnabled = True
+	End If
+	Return oBOM.BOMViews.Item(oLanguageBOM)
+End Function
+
+Private Function CheckDocMiss(ByVal oDoc As Document) As Boolean
+	For Each oRefDoc As DocumentDescriptor In oDoc.ReferencedDocumentDescriptors
+		If Not oRefDoc.ReferenceSuppressed Then
+			If oRefDoc.ReferenceMissing Then
+				Return True			
+			End If
+		End If
+	Next
+	Return False
+End Function
+
+Public Class PropertiesOfComponent
+	
+    Public Property RevNumb As String
+    Public Property TitleProp As String
+    Public Property PartNumProp As String
+    Public Property Subject As String
+    Public Property Stand As String
+    Public Property QTY As Integer
+    Public Property TotlNumb As Integer
+    Public Property Measu As String
+    Public Property oBOMStruc As Inventor.BOMStructureEnum
+	Public Property Volume As Double
+    Public Property Stren_steel As String
+	Public Property Main_size As String
+	Public Property Area_1 As String
+	
+    Public Sub New(sRevNumb As String,
+					sTitleProp As String,
+					sPartNumProp As String,
+					sSub As String,
+					sStand As String,
+					iQTY As Integer,
+					iTotlNumb As Integer,
+					sMeasu As String,
+					oBOMStructure As BOMStructureEnum,
+					dVolume As Double,
+					Optional sStren_steel As String = "",
+					Optional sMain_size As String = "",
+					Optional sArea_1 As String = "")
+        Me.RevNumb = sRevNumb
+        Me.TitleProp = sTitleProp
+        Me.PartNumProp = sPartNumProp
+        Me.Subject = sSub
+        Me.Stand = sStand
+        Me.QTY = iQTY
+        Me.TotlNumb = iTotlNumb
+        Me.Measu = sMeasu
+        Me.oBOMStruc = oBOMStructure
+        Me.Volume = dVolume
+        Me.Stren_steel = sStren_steel
+        Me.Main_size = sMain_size
+        Me.Area_1 = sArea_1
+    End Sub
+	
+End Class

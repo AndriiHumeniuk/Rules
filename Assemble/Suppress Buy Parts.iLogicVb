@@ -1,0 +1,114 @@
+﻿Public Class Suppress
+	Dim SuppPartName As String = "Suppress Buy CCs"
+	
+	Dim ListStand() As String = {"ДСТУ ISO 10642", "ДСТУ ISO 4762", "ДСТУ ISO 4014", "ДСТУ ISO 4017", "ДСТУ ГОСТ 7798", "DIN 580", "ГОСТ 4751-73", _
+		"ISO 4026", "DIN 976-1", "ДСТУ ГОСТ 5915", "ДСТУ ISO 4032", "ГОСТ 11371-78", "ДСТУ ISO 7094", "ISO 7089", "ISO 7090", "DIN 127", _
+		"DIN 128", "ГОСТ 6402-78", "ГОСТ 6402-70", "ГОСТ 7798:2008" }
+		
+	Dim ListAssemb() As String = {"БЗ", "Hilti", "Анкер-клин"}
+Sub Main()
+	
+	Dim oAssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim oAssyCompDef As AssemblyComponentDefinition = oAssyDoc.ComponentDefinition
+	Dim oOccs As ComponentOccurrences
+	oOccs = oAssyCompDef.Occurrences
+	Dim oAssMod As ModelStates = oAssyCompDef.ModelStates
+	oAssMod.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+		
+	Dim ModStat As ModelState
+	Dim ModStateName As String
+	Dim AddStatMod As Boolean
+	
+	For Each ModStat In oAssMod
+		ModStateName = ModStat.Name
+		If ModStateName = SuppPartName Then
+			AddStatMod = False
+			ModStat.Activate()
+			Call SuppComp(oOccs, 1)
+			Exit For
+			Exit Sub
+		Else
+			AddStatMod = True
+		End If
+	Next
+	
+	If AddStatMod = True Then
+		oAssMod.Add(SuppPartName)
+		Call SuppComp(oOccs, 1)
+	End If
+	
+End Sub
+
+Public Sub SuppComp(oOccs As ComponentOccurrences, Level As Integer)
+	
+	Dim oOcc As ComponentOccurrence
+		
+	For Each oOcc In oOccs
+		If oOcc.Suppressed = False Then
+			If oOcc.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+				
+				Dim AllAssemb As String
+				Dim SuppAssemb As Boolean = False
+				
+				For Each AllAssemb In ListAssemb
+					If oOcc.Name.Contains(AllAssemb) Then
+						SuppAssemb = True
+					End If					
+				Next
+				If SuppAssemb = True Then
+					Try
+						oOcc.Suppress
+					Catch
+					End Try
+				Else
+					If oOcc.Name.Contains("Frame") Then
+						Call SuppComp(oOcc.SubOccurrences, Level + 1)
+					Else
+						Dim oOccDef As AssemblyComponentDefinition
+						oOccDef = oOcc.Definition
+						Dim oOccMod As ModelStates = oOccDef.ModelStates
+						
+						If oOccMod.MemberEditScope = MemberEditScopeEnum.kEditAllMembers Then
+							oOccMod.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+						End If
+						
+						For Each ModStat As ModelState In oOccMod
+							If ModStat.Name = SuppPartName Then
+								If oOcc.ParentOccurrence.ActiveModelState = SuppPartName Then
+									ModStat.Activate()
+								End If
+								Call SuppComp(oOcc.SubOccurrences, Level + 1)
+								Exit For
+							Else
+								If oOcc.ParentOccurrence.ActiveModelState = SuppPartName Then
+									oOccMod.Add(SuppPartName)
+								End If
+								Call SuppComp(oOcc.SubOccurrences, Level + 1)
+							End If
+						Next
+					End If
+				End If
+			End If
+			
+			If oOcc.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+				Dim oCompDef As PartComponentDefinition
+				Dim oPropSets As PropertySets
+				Dim AllStand As String
+				
+				oCompDef = oOcc.Definition		
+				oPropSets = oCompDef.Document.PropertySets
+				oDesignTrackingPropertySet = oPropSets.Item("Design Tracking Properties")
+				oStandard = oDesignTrackingPropertySet.Item("Catalog Web Link")
+				
+				For Each AllStand In ListStand
+					If oStandard.Value = AllStand Then
+						oOcc.Suppress
+					End If
+				Next
+				
+			End If
+		End If
+	Next
+End Sub
+
+End Class

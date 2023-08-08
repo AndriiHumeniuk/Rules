@@ -1,0 +1,10 @@
+﻿Dim oDoc As PartDocument = ThisDoc.Document
+Dim oDef As SheetMetalComponentDefinition = oDoc.ComponentDefinition
+If oDef.MassProperties.Mass <> 0 Then
+	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters
+	Try
+		oUserParams("Volume_1").Value = iProperties.Volume/1000
+	Catch
+		oUserParams.AddByValue("Volume_1", iProperties.Volume/1000, "m m m")
+	End Try
+End If

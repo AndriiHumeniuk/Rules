@@ -1,0 +1,11 @@
+﻿Dim oDoc As PartDocument = ThisDoc.Document
+Dim oDef As SheetMetalComponentDefinition = oDoc.ComponentDefinition
+If oDef.MassProperties.Mass <> 0 Then
+	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters	
+	Try
+		oUserParams("Area_1").Value = oUserParams("Volume_1").Value / oDef.Thickness.Value
+	Catch
+		iLogicVb.RunExternalRule("Calculate_Volume")
+		oUserParams.AddByValue("Area_1", oUserParams("Volume_1").Value / oDef.Thickness.Value, "m m")
+	End Try
+End If

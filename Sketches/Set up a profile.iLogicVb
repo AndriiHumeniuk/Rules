@@ -1,0 +1,1518 @@
+﻿Dim oDoc As Document = ThisApplication.ActiveDocument
+Dim List() As String = {"Двотавр", "Труба прямокутного профілю", "Кутик", "Швелер", "Труба кругла" }
+Dim List_1() As String = {"DIN 1025-2 IPB", "DIN 1025-4 IPBv", "DIN 1025-5 IPE", "EURONORM 53-62 HEA", "EURONORM 53-62 HEB", "EURONORM 53-62 HEM" _
+, "ГОСТ 26020-83 (Не діючий)", "ДСТУ 8768:2018" }
+Dim List_1_1() As String = {"IPB 100", "IPB 120", "IPB 140", "IPB 160", "IPB 180", "IPB 200", "IPB 220", "IPB 240", "IPB 260", "IPB 280", "IPB 300", _
+"IPB 320", "IPB 340", "IPB 360", "IPB 400", "IPB 450", "IPB 500", "IPB 550", "IPB 600", "IPB 650", "IPB 700", "IPB 800", "IPB 900", "IPB 1000" }
+
+Dim List_2() As String = {"вкер", "кеим", "кеи" }
+
+Dim Active_profile As String = "Active_profile"
+Dim Active_standart As String = "Active_standart"
+
+Dim Active_size As String = "Active_size"
+Dim oComp As PartComponentDefinition = oDoc.ComponentDefinition
+Dim oUPs As UserParameters = oComp.Parameters.UserParameters
+Dim oUP As UserParameter
+Dim oUP2 As UserParameter
+Dim Copy_center_point As UserParameter = oDoc.ComponentDefinition.Parameters.UserParameters.AddByValue("Copy_center_point", False, "BOOLEAN")
+For Each oPara As Parameter In oUPs
+	Dim oName As String = oPara.Name
+	If oName = "Copy_center_point_1" Then 
+	oPara.Delete
+End If
+Next
+Try
+	Test = oUPs.Item(Active_profile).Value
+	Test_1 = oUPs.Item(Active_standart).Value
+	Test_1_1 = oUPs.Item(Active_size).Value
+Catch
+	oUP = oUPs.AddByValue(Active_profile, List(0), UnitsTypeEnum.kTextUnits)
+	oUP_1 = oUPs.AddByValue(Active_standart, List_1(0), UnitsTypeEnum.kTextUnits)
+	oUP_1_1 = oUPs.AddByValue(Active_size, List_1_1(0), UnitsTypeEnum.kTextUnits)
+End Try	
+MultiValue.List(Active_profile) = List
+MultiValue.List(Active_standart) = List_1
+MultiValue.List(Active_size) = List_1_1
+MultiValue.SetValueOptions(True)
+
+Dim ParthComp As String = "\\Comp59\Work SP\Templates\Rules\Sketches\"
+
+'[ _________Двотавр_________
+If Parameter("Active_profile") = "Двотавр" Then
+		MultiValue.SetList("Active_standart", "DIN 1025-2 IPB", "DIN 1025-4 IPBv", "DIN 1025-5 IPE", "EURONORM 53-62 HEA", "EURONORM 53-62 HEB", "EURONORM 53-62 HEM" _
+		, "ГОСТ 26020-83 (Не діючий)", "ДСТУ 8768:2018")
+
+	'[ <<<<<<<<Двотавр DIN 1025-2 IPB>>>>>>>>>
+		If Parameter("Active_standart") = "DIN 1025-2 IPB" Then
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\DIN 1025-2 IPB.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I26")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close			
+	']
+	
+	'[ <<<<<<<<Двотавр DIN 1025-4 IPBv>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "DIN 1025-4 IPBv" Then
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\DIN 1025-4 IPBv.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I27")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+		
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close	
+		']	
+		
+	'[ <<<<<<<<Двотавр DIN 1025-5 IPE>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "DIN 1025-5 IPE" Then
+		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\DIN 1025-5 IPE.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I20")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[ <<<<<<<<Двотавр EURONORM 53-62 HEA>>>>>>>>>
+	ElseIf Parameter("Active_standart") = "EURONORM 53-62 HEA" Then		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\EURONORM 53-62 HEA.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I26")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+	']
+	
+	'[ <<<<<<<<Двотавр EURONORM 53-62 HEB>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "EURONORM 53-62 HEB" Then		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\EURONORM 53-62 HEB.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I26")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[ <<<<<<<<Двотавр EURONORM 53-62 HEM>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "EURONORM 53-62 HEM" Then		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\EURONORM 53-62 HEM.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I27")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+	
+	'[ <<<<<<<<Двотавр ГОСТ 26020-83 (Не діючий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ГОСТ 26020-83 (Не діючий)" Then		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\ГОСТ 26020-83 (Не діючий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "Y3", "Y93")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t1").Expression = Parameter("t1") 
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close			
+		']	
+		
+	'[ <<<<<<<<Двотавр ДСТУ 8768:2018>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 8768:2018" Then		
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\ДСТУ 8768_2018.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "D3", "D19")
+			TempFile="Шаблони для копіювання ескізів профілів\Двотавр\Двотавр ДСТУ 8768_2018.ipt"
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t_ = oUPs.AddByExpression("t_", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_s_ = oUPs.AddByExpression("s_", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_r_ = oUPs.AddByExpression("r_", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R__ = oUPs.AddByExpression("R__", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "t__1" Then 
+						oPara.Delete
+					ElseIf oName = "s__1" Then 
+						oPara.Delete
+					ElseIf oName = "r__1" Then
+						oPara.Delete
+					ElseIf oName = "R___1" Then 						
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "Section Designation", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("t_") = GoExcel.CurrentRowValue("t_")
+				Parameter("s_") = GoExcel.CurrentRowValue("s_")
+				Parameter("r_") = GoExcel.CurrentRowValue("r_")
+				Parameter("R__") = GoExcel.CurrentRowValue("R__")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("t_").Expression = Parameter("t_") 
+			oDef.Parameters.Item("s_").Expression = Parameter("s_")
+			oDef.Parameters.Item("r_").Expression = Parameter("r_")
+			oDef.Parameters.Item("R__").Expression = Parameter("R__")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']	
+End If	
+']	
+
+'[ _________Труба прямокутного профілю_________
+ElseIf Parameter("Active_profile") = "Труба прямокутного профілю" Then
+		MultiValue.SetList("Active_standart", "ДСТУ 8940:2019 (Квадратна)", "ДСТУ 8940:2019 (Прямокутна)", "ДСТУ EN 10210-2 (Квадратна)", "ДСТУ EN 10210-2 (Прямокутна)" _
+		, "ДСТУ Б В.2.6-8-95 (Квадратна)", "ДСТУ Б В.2.6-8-95 (Прямокутна)")
+
+		'[ <<<<<<<<ДСТУ 8940:2019 (Квадратна)>>>>>>>>>
+		If Parameter("Active_standart") = "ДСТУ 8940:2019 (Квадратна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940_2019 (Квадратна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "G3", "G98")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']	
+		
+		'[ <<<<<<<<ДСТУ 8940:2019 (Прямокутна)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 8940:2019 (Прямокутна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940_2019 (Прямокутна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "G3", "G250")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']	
+		
+		'[ <<<<<<<<ДСТУ EN 10210-2 (Квадратна)>>>>>>>>>
+			ElseIf Parameter("Active_standart") = "ДСТУ EN 10210-2 (Квадратна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ EN 10210-2 (Квадратна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I152")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']	
+		
+		'[ <<<<<<<<ДСТУ EN 10210-2 (Прямокутна)>>>>>>>>>
+			ElseIf Parameter("Active_standart") = "ДСТУ EN 10210-2 (Прямокутна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ EN 10210-2 (Прямокутна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "I3", "I153")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ Б В.2.6-8-95 (Квадратна)>>>>>>>>>
+			ElseIf Parameter("Active_standart") = "ДСТУ Б В.2.6-8-95 (Квадратна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ Б В.2.6-8-95 (Квадратна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "G3", "G156")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ Б В.2.6-8-95 (Прямокутна)>>>>>>>>>
+			ElseIf Parameter("Active_standart") = "ДСТУ Б В.2.6-8-95 (Прямокутна)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ Б В.2.6-8-95 (Прямокутна).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "G3", "G426")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+End If
+']
+
+'[________Кутик___________
+ElseIf Parameter("Active_profile") = "Кутик" Then
+	MultiValue.SetList("Active_standart", "ДСТУ 2251:2018", "ДСТУ 2254-93 (Гнутий рівнобокий)", "ДСТУ 2255-93 (Гнутий нерівнобокий)", "ДСТУ 8769_2018 (Нерівнобокий)", _
+	"ДСТУ EN 10056-1:2006 (Нерівнобокий)", "ДСТУ EN 10056-1:2006 (Рівнобокий)")
+		'[ <<<<<<<<ДСТУ 2251:2018 (Рівнобокий)>>>>>>>>>
+		If Parameter("Active_standart") = "ДСТУ 2251:2018" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2251_2018.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "V3", "V91")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2251_2018.ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_r1 = oUPs.AddByExpression("r1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "r1_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")
+				Parameter("r1") = GoExcel.CurrentRowValue("r1")
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R") 
+			oDef.Parameters.Item("r1").Expression = Parameter("r1")
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']	
+		
+		'[ <<<<<<<<ДСТУ EN 10056-1:2006 (Рівнобокий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ EN 10056-1:2006 (Рівнобокий)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик рівнобокий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "V3", "V48")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик рівнобокий).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)				
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R") 
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ 8769_2018 (Нерівнобокий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 8769_2018 (Нерівнобокий)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 8769_2018 (Нерівнобокий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "AB3", "AB64")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 8769_2018 (Нерівнобокий).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_a = oUPs.AddByExpression("a", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_r1 = oUPs.AddByExpression("r1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ey = oUPs.AddByExpression("ey", "100", UnitsTypeEnum.kMillimeterLengthUnits)	
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "a_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "r1_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					ElseIf oName = "ey_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("a") = GoExcel.CurrentRowValue("a")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")
+				Parameter("r1") = GoExcel.CurrentRowValue("r1")
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+				Parameter("ey") = GoExcel.CurrentRowValue("ey")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition
+			oDef.Parameters.Item("a").Expression = Parameter("a")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R") 
+			oDef.Parameters.Item("r1").Expression = Parameter("r1")
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			oDef.Parameters.Item("ey").Expression = Parameter("ey")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ EN 10056-1_2006 (Кутик нерівнобокий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ EN 10056-1:2006 (Нерівнобокий)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик нерівнобокий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "AA3", "V48")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик нерівнобокий).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ey = oUPs.AddByExpression("ey", "100", UnitsTypeEnum.kMillimeterLengthUnits)	
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					ElseIf oName = "ey_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+				Parameter("ey") = GoExcel.CurrentRowValue("ey")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R") 
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			oDef.Parameters.Item("ey").Expression = Parameter("ey")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ 2254-93 (Гнутий рівнобокий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 2254-93 (Гнутий рівнобокий)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2254-93 (Гнутий рівнобокий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "U3", "U31")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2254-93 (Гнутий рівнобокий).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+						
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete					
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete					
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete					
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("b") = GoExcel.CurrentRowValue("b")				
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")				
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("b").Expression = Parameter("b")			
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R") 			
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[ <<<<<<<<ДСТУ 2255-93 (Гнутий нерівнобокий)>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 2255-93 (Гнутий нерівнобокий)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2255-93 (Гнутий нерівнобокий).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "Y3", "Y24")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2255-93 (Гнутий нерівнобокий).ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_a = oUPs.AddByExpression("a", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			oUP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ParT = oUPs.AddByExpression("ParT", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ey = oUPs.AddByExpression("ey", "100", UnitsTypeEnum.kMillimeterLengthUnits)	
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "b_1" Then 
+						oPara.Delete
+					ElseIf oName = "a_1" Then 
+						oPara.Delete
+					ElseIf oName = "ParT_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "ey_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("a") = GoExcel.CurrentRowValue("a")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("ParT") = GoExcel.CurrentRowValue("ParT")
+				Parameter("R") = GoExcel.CurrentRowValue("R")				
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+				Parameter("ey") = GoExcel.CurrentRowValue("ey")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition
+			oDef.Parameters.Item("a").Expression = Parameter("a")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("ParT").Expression = Parameter("ParT")
+			oDef.Parameters.Item("R").Expression = Parameter("R")			
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			oDef.Parameters.Item("ey").Expression = Parameter("ey")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+
+	End If
+']	
+
+'[______Швелер_________
+ElseIf Parameter("Active_profile") = "Швелер" Then
+	MultiValue.SetList("Active_standart", "DIN 1026-1", "DIN 1026-2", "ДСТУ 3436-96")
+		'[ <<<<<<<<DIN 1026-1>>>>>>>>>
+		If Parameter("Active_standart") = "DIN 1026-1" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-1.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "U3", "U26")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-1.ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_ER = oUPs.AddByExpression("G_ER", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T1 = oUPs.AddByExpression("G_T1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_C = oUPs.AddByExpression("G_C", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_NG = oUPs.AddByExpression("G_NG", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete					
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_ER_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T1_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_C_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_NG_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")
+				Parameter("G_ER") = GoExcel.CurrentRowValue("G_ER")
+				Parameter("G_T1") = GoExcel.CurrentRowValue("G_T1")
+				Parameter("G_C") = GoExcel.CurrentRowValue("G_C")
+				Parameter("G_NG") = GoExcel.CurrentRowValue("G_NG")				
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")
+			oDef.Parameters.Item("G_ER").Expression = Parameter("G_ER")
+			oDef.Parameters.Item("G_T1").Expression = Parameter("G_T1")
+			oDef.Parameters.Item("G_C").Expression = Parameter("G_C")
+			oDef.Parameters.Item("G_NG").Expression = Parameter("G_NG")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[<<<<<<<<DIN 1026-2>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "DIN 1026-2" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-2.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "O3", "O16")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-2.ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_W = oUPs.AddByExpression("G_W", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_IR = oUPs.AddByExpression("G_IR", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T1 = oUPs.AddByExpression("G_T1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_G_C = oUPs.AddByExpression("G_C", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_W_1" Then 
+						oPara.Delete					
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_IR_1" Then 
+						oPara.Delete					
+					ElseIf oName = "G_T1_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_C_1" Then 
+						oPara.Delete					
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")
+				Parameter("G_W") = GoExcel.CurrentRowValue("G_W")
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")
+				Parameter("G_IR") = GoExcel.CurrentRowValue("G_IR")				
+				Parameter("G_T1") = GoExcel.CurrentRowValue("G_T1")
+				Parameter("G_C") = GoExcel.CurrentRowValue("G_C")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_W").Expression = Parameter("G_W")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 
+			oDef.Parameters.Item("G_IR").Expression = Parameter("G_IR")			
+			oDef.Parameters.Item("G_T1").Expression = Parameter("G_T1")
+			oDef.Parameters.Item("G_C").Expression = Parameter("G_C")			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+		'[<<<<<<<<ДСТУ 3436-96>>>>>>>>>
+		ElseIf Parameter("Active_standart") = "ДСТУ 3436-96" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\ДСТУ 3436-96.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "AB3", "AB80")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Швелер\ДСТУ 3436-96.ipt"			
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)			
+			oUP_ParH = oUPs.AddByExpression("ParH", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_b = oUPs.AddByExpression("b", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_B_L = oUPs.AddByExpression("B_L", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_t1 = oUPs.AddByExpression("t1", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_t2 = oUPs.AddByExpression("t2", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R = oUPs.AddByExpression("R", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_R1 = oUPs.AddByExpression("R1", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+			UP_ex = oUPs.AddByExpression("ex", "100", UnitsTypeEnum.kMillimeterLengthUnits)
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "ParH_1" Then 
+						oPara.Delete
+					ElseIf oName = "b_1" Then 
+						oPara.Delete					
+					ElseIf oName = "B_L_1" Then 
+						oPara.Delete
+					ElseIf oName = "t1_1" Then 
+						oPara.Delete					
+					ElseIf oName = "t2_1" Then 
+						oPara.Delete
+					ElseIf oName = "R_1" Then 
+						oPara.Delete
+					ElseIf oName = "R1_1" Then 
+						oPara.Delete
+					ElseIf oName = "ex_1" Then 
+						oPara.Delete
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "SIZE_SEL", "=", parameter("Active_size"))
+				Parameter("ParH") = GoExcel.CurrentRowValue("ParH")
+				Parameter("b") = GoExcel.CurrentRowValue("b")
+				Parameter("B_L") = GoExcel.CurrentRowValue("B_L")
+				Parameter("t1") = GoExcel.CurrentRowValue("t1")				
+				Parameter("t2") = GoExcel.CurrentRowValue("t2")
+				Parameter("R") = GoExcel.CurrentRowValue("R")
+				Parameter("R1") = GoExcel.CurrentRowValue("R1")
+				Parameter("ex") = GoExcel.CurrentRowValue("ex")
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("ParH").Expression = Parameter("ParH")
+			oDef.Parameters.Item("b").Expression = Parameter("b")
+			oDef.Parameters.Item("B_L").Expression = Parameter("B_L") 
+			oDef.Parameters.Item("t1").Expression = Parameter("t1")			
+			oDef.Parameters.Item("t2").Expression = Parameter("t2")
+			oDef.Parameters.Item("R").Expression = Parameter("R")
+			oDef.Parameters.Item("R1").Expression = Parameter("R1")
+			oDef.Parameters.Item("ex").Expression = Parameter("ex")
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	End If
+']	
+
+'[ _________Труба кругла_________
+ElseIf Parameter("Active_profile") = "Труба кругла" Then
+	MultiValue.SetList("Active_standart", "ДСТУ 8936_2019", "ДСТУ 8938_2019", "ДСТУ 8939_2019", "ДСТУ 8943_2019", "ДСТУ EN 10210-2", "ДСТУ EN 10216-1", "ДСТУ ISO 1127_2013 (Серия 1)", _
+	"ДСТУ ISO 1127_2013 (Серия 2)", "ДСТУ ISO 1127_2013 (Серия 3)")
+	'[<<<<<<<ДСТУ 8936_2019>>>>>>
+	If Parameter("Active_standart") = "ДСТУ 8936_2019" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E57")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"		
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+						
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[<<<<<<<ДСТУ 8938_2019>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ 8938_2019" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8938_2019.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E1795")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+	']
+		
+	'[<<<<<<<ДСТУ 8939_2019>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ 8939_2019" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8939_2019.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E1732")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+	']			
+		
+	'[<<<<<<<ДСТУ 8943_2019>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ 8943_2019" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8943_2019.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E806")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[<<<<<<<ДСТУ EN 10210-2>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ EN 10210-2" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ EN 10210-2.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "F3", "F222")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[<<<<<<<ДСТУ EN 10216-1>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ EN 10216-1" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ EN 10216-1.xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "F3", "F396")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+			
+		']
+		
+	'[<<<<<<<ДСТУ ISO 1127_2013 (Серия 1)>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ ISO 1127_2013 (Серия 1)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ ISO 1127_2013 (Серия 1).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E332")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[<<<<<<<ДСТУ ISO 1127_2013 (Серия 2)>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ ISO 1127_2013 (Серия 2)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ ISO 1127_2013 (Серия 2).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E144")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	'[<<<<<<<ДСТУ ISO 1127_2013 (Серия 3)>>>>>>
+	ElseIf Parameter("Active_standart") = "ДСТУ ISO 1127_2013 (Серия 3)" Then
+			MultiValue.SetValueOptions(False)
+    		MultiValue.SetValueOptions(True)
+			Dim ExcelFileName As String = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ ISO 1127_2013 (Серия 3).xlsx"
+			MultiValue.List("Active_size") = GoExcel.CellValues(ExcelFileName, "Лист2", "E3", "E50")
+			
+			TempFile="Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"	
+			Dim Temp2 As PartDocument 
+			Temp2 = ThisApplication.Documents.Open(ParthComp & TempFile, False)
+			
+			oUP_G_H = oUPs.AddByExpression("G_H", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+			UP_G_T = oUPs.AddByExpression("G_T", "100", UnitsTypeEnum.kMillimeterLengthUnits)			
+				For Each oPara As Parameter In oUPs
+					Dim oName As String = oPara.Name
+					If oName = "G_H_1" Then 
+						oPara.Delete
+					ElseIf oName = "G_T_1" Then 
+						oPara.Delete				
+					End If
+				Next
+				i = GoExcel.FindRow(ExcelFileName, "Лист2", "G_D", "=", parameter("Active_size"))
+				Parameter("G_H") = GoExcel.CurrentRowValue("G_H")				
+				Parameter("G_T") = GoExcel.CurrentRowValue("G_T")							
+						
+			Dim oDef As PartComponentDefinition
+			oDef = Temp2.ComponentDefinition 
+			oDef.Parameters.Item("G_H").Expression = Parameter("G_H")
+			oDef.Parameters.Item("G_T").Expression = Parameter("G_T") 			
+			Call Temp2.Update
+			Temp2.Save
+			Temp2.Close
+		']
+		
+	End If
+End If
+']
+iLogicVb.UpdateWhenDone = True
+InventorVb.DocumentUpdate()
+

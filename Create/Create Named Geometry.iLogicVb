@@ -1,0 +1,23 @@
+﻿Sub Main()
+	
+	Dim oDoc As Object
+	oDoc = ThisApplication.ActiveDocument
+	
+	Dim oCompDef As Object
+	oCompDef = oDoc.ComponentDefinition
+	
+	Dim oFace As Face
+	
+	Dim iLogicAuto = iLogicVb.Automation
+	Dim oNamedEntities = iLogicAuto.GetNamedEntities(ThisDoc.Document)
+	
+	' Faces
+	For i = 1 To oCompDef.SurfaceBodies.Item(1).Faces.Count
+		oFace = oCompDef.SurfaceBodies.Item(1).Faces.Item(i)
+		
+		Dim sAttValue As String = String.Concat("Face_", i)
+		
+		oNamedEntities.SetName(oFace, sAttValue)
+	Next i
+	
+End Sub

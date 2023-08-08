@@ -1,0 +1,231 @@
+﻿Sub Main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	If oDoc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then Exit Sub
+	Dim aDef As AssemblyComponentDefinition = oDoc.ComponentDefinition	
+	Dim oSet As HighlightSet
+	oSet = oDoc.CreateHighlightSet
+	oSet.Color = oInvApp.TransientObjects.CreateColor(255, 0, 255)
+	Dim vbResult As DialogResult = MessageBox.Show("Заповнити атрибути всіх пустих компонентів?", _
+												   "Attributing", _
+												   MessageBoxButtons.YesNo, _
+												   MessageBoxIcon.Question, _
+												   MessageBoxDefaultButton.Button1)
+	If vbResult = vbYes Then
+		Dim oZoomer As ControlDefinitions = oInvApp.CommandManager.ControlDefinitions
+		Dim oSSet As SelectSet
+		oSSet = oDoc.SelectSet
+		oSSet.Clear()
+				
+		Call GostComponent(aDef.Occurrences, True)
+		For Each oOcc As ComponentOccurrence In aDef.Occurrences
+			If oOcc.Suppressed = False
+				If FindParts(oOcc) Then
+					Call oSSet.Select(oOcc)
+					Call oZoomer.Item("AppZoomSelectCmd").Execute()
+					Call CreatAtributs(oOcc, oSet)
+					Call oSSet.Clear()
+				End If
+			End If
+		Next
+		Call GostComponent(aDef.Occurrences, False)
+		oZoomer.Item("AppZoomallCmd").Execute()
+		oDoc.Update()
+	Else
+		Dim oOcc As ComponentOccurrence = oInvApp.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
+																	"Оберіть компонент...")
+		If oOcc Is Nothing Then Exit Sub
+		Call CreatAtributs(oOcc, oSet)
+	End If
+End Sub
+
+Public Function GostComponent(oOccs As ComponentOccurrences, bGhost As Boolean)
+	For Each oOcc As ComponentOccurrence In oOccs
+		If oOcc.Suppressed = False Then
+			If oOcc.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+				oOcc.Transparent = bGhost
+			Else
+				Call GostComponent(oOcc.SubOccurrences, bGhost)
+			End If
+		End If
+	Next
+End Function
+
+Public Function FindParts(oOcc As ComponentOccurrence) As Boolean
+	If oOcc.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+		Dim oOccDef As ComponentDefinition = oOcc.Definition
+		Dim oOccDoc As PartDocument = oOccDef.Document
+		Dim oPropSets As PropertySets = oOccDoc.PropertySets
+		oDTP = oPropSets.Item("Design Tracking Properties")
+		oISI = oPropSets.Item("Inventor Summary Information")
+		If oOccDef.Type = kPartComponentDefinitionObject Then
+			If oOccDef.BOMStructure = BOMStructureEnum.kNormalBOMStructure Then
+				If oDTP.Item("Catalog Web Link").Value = "" Or oISI.Item("Revision Number").Value = "" Or oISI.Item("Subject").Value = "" Then
+					Return True
+				End If
+			End If
+		ElseIf oOcc.Definition.Type = kSheetMetalComponentDefinitionObject Then
+			Dim oSheetDef As SheetMetalComponentDefinition = oOcc.Definition
+			For Each oParam As Inventor.Parameter In oSheetDef.Parameters
+				If oParam.Name = oSheetDef.Thickness.Expression Then
+					Return False
+				End If
+			Next
+			Return True
+		End If
+	End If
+	Return False
+End Function
+
+Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
+	oSet.AddItem(oOcc)
+	Dim oDocPart As PartDocument = oOcc.Definition.Document
+	If Not System.IO.File.Exists(oDocPart.FullFileName) Then oDocPart.Save()
+		
+	If oOcc.Definition.Type = kPartComponentDefinitionObject Then
+		Try
+			iLogicVb.RunRule(oOcc.Name, "1_Тема і веб-сайт")
+		Catch
+			MsgBox("There needs to be a rule called '1_Тема і веб-сайт' in the iCopy assembly to run....", 64, "Excitech iLogic")
+		End Try
+	ElseIf oOcc.Definition.Type = kSheetMetalComponentDefinitionObject Then
+		'[Big CODE
+		Dim sheetDef As SheetMetalComponentDefinition = oDocPart.ComponentDefinition
+		Dim tName As String
+		Dim ListParam As New ArrayList
+		Dim ListName As String = "ListParameters"
+		Dim oDriveParts As DerivedPartComponents = sheetDef.ReferenceComponents.DerivedPartComponents
+		If oDriveParts.Count >= 1 Then
+			Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
+			Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
+			Dim oGroundPart As PartDocument = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+			Dim oDerBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+			Dim oDPEnts As DerivedPartEntities = oDerPartDef.Parameters
+			Dim oDPEnt As DerivedPartEntity
+			Dim oBodyName As String = oDerBodyName.Substring(0,oDerBodyName.IndexOf("::"))
+			Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
+			Dim oBodies As SurfaceBodies = oGroundDef.SurfaceBodies
+			Dim oFeatName As String
+			Dim oParam As Parameter
+			For Each oBody As SurfaceBody In oBodies
+				If oBody.Name = oBodyName Then
+					oFeatName = oBody.CreatedByFeature.Name
+					Exit For
+				End If
+			Next
+			If oGroundDef.Features(oFeatName).Type = ObjectTypeEnum.kSplitFeatureObject Then '83915776 (Розділення)
+				Dim BrowserPane As BrowserPane = oGroundPart.BrowserPanes.Item("Model")
+				oFeat = GetParentFeature(BrowserPane.TopNode.BrowserNodes(3).BrowserNodes, oBodyName)
+				If oFeat Is Nothing Then GoTo ExitRule
+			Else
+				oFeat = oGroundDef.Features(oFeatName)
+			End If
+			If oFeat.Type = kThickenFeatureObject Then '83955200 (Товщина)
+				tName = oFeat.Parameters.Item(1).Name
+			Else If oFeat.Type = kExtrudeFeatureObject Then '83910656 (Видавлення)
+				Dim oSketch As PlanarSketch = oFeat.Profile.Parent			
+				'[	Autosize thickness	
+				Dim oBody As SurfaceBody = sheetDef.SurfaceBodies.Item(1)
+				Dim oArray As New List(Of Double)
+				Dim oValue As New List(Of Double)
+				Dim ListFace As New List(Of Integer)
+				Dim IndexFace As Integer = 1
+				For Each oFace As Face In oBody.Faces
+					oArray.Add(oFace.Evaluator.Area)
+				Next
+				oValue = oArray.FindAll(Function(t) t > oArray.Max - (oArray.Max * 0.05))
+				For Each Size In oArray
+					If oValue.Contains(Size) Then
+						ListFace.Add(IndexFace)
+					End If
+					IndexFace = IndexFace +1
+				Next
+				Dim oResule As New List(Of Double)
+				Dim oMTs As MeasureTools = ThisApplication.MeasureTools
+				If ListFace.Count >= 2 And ListFace.Count < 4 Then
+					oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+				ElseIf ListFace.Count >= 4 Then
+					If ListFace.Count >= 4 And ListFace.Count < 6 Then
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+					ElseIf ListFace.Count >= 6 And ListFace.Count < 8 Then
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
+					ElseIf ListFace.Count >= 8 Then
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(6))))
+						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(7))))
+					End If
+				End If']
+				Dim oThick As Double = (Round(oResule.Min, 3))
+				If oThick = Round(oFeat.Parameters.Item(1).Value, 5) Then
+					tName = oFeat.Parameters.Item(1).Name
+				Else
+					For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
+						If oThick = Round(oDimCon.Parameter.Value, 5) Then
+								tName = oDimCon.Parameter.Name
+							Exit For
+						End If
+					Next
+				End If
+				If tName Is Nothing Then
+					For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
+						ListParam.Add(oDimCon.Parameter.Name & "(" & oDimCon.Parameter.Expression & ") = " & oDimCon.Parameter.Value * 10 & " " & oDimCon.Parameter.Units)
+					Next
+					ListParam.Add(oFeat.Parameters.Item(1).Name & "(" & oFeat.Parameters.Item(1).Expression & ") = " & _
+					oFeat.Parameters.Item(1).Value * 10 & " " & oFeat.Parameters.Item(1).Units)
+					tName = InputListBox(oBodyName, ListParam, ListName(0), Title := "Параметри.", ListName := "Вибиріть товщину:")
+					tName = tName.Substring(0, tName.IndexOf("("))
+				End If		
+			Else
+				MessageBox.Show("Ваш випадок не прописаний в алгоритмі, будьласка пропрацюйте це в зовнішньому правелі 'SelectThickness'." & vbLf & _
+								"Тип тіла: " & oFeat.Type.ToString(), "Помилка!!!")
+				GoTo ExitRule
+			End If
+			For Each oDPEnt In oDPEnts
+				If oDPEnt.ReferencedEntity.Name = tName Then
+					oDPEnt.IncludeEntity = True
+					Exit For
+				End If
+			Next
+			oDrivePart.Definition = oDerPartDef
+			sheetDef.Thickness.Expression = tName
+		End If
+		ThisApplication.SilentOperation = True
+		If sheetDef.HasFlatPattern = False Then
+			sheetDef.Unfold()
+			sheetDef.FlatPattern.ExitEdit()
+		Else
+			sheetDef.FlatPattern.Delete()
+			sheetDef.Unfold()
+			sheetDef.FlatPattern.ExitEdit()
+		End If
+		ExitRule :
+		ThisApplication.SilentOperation = False
+		']
+		iLogicVb.RunRule(oOcc.Name, "Sheet iProperties")
+	End If
+	oSet.Clear()
+End Sub
+
+Private Function GetParentFeature(oNodes As BrowserNodesEnumerator, sName As String) As PartFeature
+	Dim oFeat As PartFeature
+	For Each oNode As BrowserNode In oNodes
+		If oNode.BrowserNodeDefinition.Label = sName Then
+			If oNode.BrowserNodes(1).BrowserNodes.Count > 0 Then
+				oFeat = GetParentFeature(oNodes, oNode.BrowserNodes(1).BrowserNodes.Item(1).BrowserNodeDefinition.Label)
+			Else
+				Return oNode.BrowserNodes(1).NativeObject			
+			End If
+		End If
+	Next
+	Return oFeat
+End Function

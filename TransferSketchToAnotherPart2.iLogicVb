@@ -1,0 +1,40 @@
+﻿Sub Main
+	Dim oAsm As AssemblyDocument = ThisApplication.ActiveDocument
+	Dim oAsmComp As AssemblyComponentDefinition = oAsm.ComponentDefinition
+	
+	Dim oOcc As ComponentOccurrence
+	oOcc = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Select parth with sketch")
+	Dim oPartComp As PartComponentDefinition
+	oPartComp = oOcc.Definition	
+	If oOcc Is Nothing Then Return
+		
+	Dim oSketch As Sketch
+	Dim SketchList As New ArrayList
+	For Each oSketchTemp As Sketch In oPartComp.Sketches
+			SketchList.Add(oSketchTemp.Name)
+	Next
+	If SketchList.Count = 0 Then Return
+	Dim sSketch As String = InputListBox("Sketches found on the selected part", SketchList, "", "Selected Scetch To Copy", "Sketches Found")
+	If sSketch = "" Then Return
+	oSketch = oPartComp.Sketches.Item(sSketch)
+	
+	
+		
+	Dim oOcc2 As ComponentOccurrence
+	oOcc2 = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, "Select part to copy sketch to")
+	Dim oPartComp2 As PartComponentDefinition
+	oPartComp2 = oOcc2.Definition
+	
+'	Dim oSketch2 As Sketch = Nothing
+	Dim SketchList2 As New ArrayList
+	For Each oSketchTemp As Sketch In oPartComp2.Sketches
+		SketchList2.Add(oSketchTemp.Name)
+	Next
+'	If oSketch2.Count = 0 Then Return
+	Dim oSketch2 As String = InputListBox("Sketches found on thee selected part", SketchList2, "",
+		"Select a sketch to copy to", "Sketches Found")
+	If oSketch2 = "" Then Return
+	oSketch2 = oPartComp2.Sketches.Item(oSketch2)
+	
+	oSketch.CopyContentsTo(oSketch2)
+End Sub

@@ -1,0 +1,11 @@
+﻿Dim oDoc As Document = ThisApplication.ActiveDocument
+Dim oDocIntName As String = oDoc.InternalName
+Dim oCompDef As ComponentDefinition = oDoc.ComponentDefinition
+Dim oPropSets As PropertySets = oCompDef.Document.PropertySets
+oCustProp = oPropSets.Item("Inventor User Defined properties")
+
+Try
+	oCustProp.Item("InternalName").Value = oDocIntName
+Catch
+	Call oCustProp.Add("" & oDocIntName & "", "InternalName")
+End Try

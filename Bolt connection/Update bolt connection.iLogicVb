@@ -1,0 +1,38 @@
+﻿Private Sub Main()
+	Dim oAppInv As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oAppInv.ActiveDocument
+	Dim oTM As TransactionManager = oAppInv.TransactionManager
+	Dim oControl As ControlDefinitions = oAppInv.CommandManager.ControlDefinitions
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oAssDoc As AssemblyDocument = oDoc
+		Dim oOccs As ComponentOccurrences = oAssDoc.ComponentDefinition.Occurrences
+		Dim newTM As Transaction = oTM.StartTransaction(oAssDoc, "Update bolted connections")
+		For Each oRefDoc As Document In oAssDoc.AllReferencedDocuments
+			If ChackOccurrence(oRefDoc, oOccs) Then
+				Dim oOcc As ComponentOccurrence = oOccs.AllReferencedOccurrences(oRefDoc).Item(1)
+				If Not oOcc.AttributeSets.NameIsUsed("FDesign") Then Continue For
+				If oOcc.AttributeSets.Item("FDesign").Item("Req").Value <> 1 Then Continue For
+				oAssDoc.SelectSet.Select(oOcc)
+				Call oControl.Item("FDSolveAuto").Execute
+				oAssDoc.SelectSet.Select(oOcc)
+				Call oControl.Item("FDSolveManual").Execute
+			End If
+		Next
+		oAssDoc.Update()
+		newTM.End
+	End If
+End Sub
+
+Private Function ChackOccurrence(ByVal oRefDoc As Document, ByVal oOccs As ComponentOccurrences) As Boolean
+	If oOccs.AllReferencedOccurrences(oRefDoc).Count > 0 _
+		AndAlso oRefDoc.DocumentInterests.HasInterest("{BB8FE430-83BF-418D-8DF9-9B323D3DB9B9}") _ 'Design Accelerator Add-in
+		AndAlso oRefDoc.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+		Return True
+	End If
+	Return False
+End Function
+
+'Cable & Harness routing - {C6107C9D-C53F-4323-8768-F65F857F9F5A}
+'Tube & Pipe routing - {4D39D5F1-0985-4783-AA5A-FC16C288418C}
+'Autodesk Frame Generator Add-in - {AC211AE0-A7A5-4589-916D-81C529DA6D17}
+'Design Accelerator Add-in - {BB8FE430-83BF-418D-8DF9-9B323D3DB9B9}

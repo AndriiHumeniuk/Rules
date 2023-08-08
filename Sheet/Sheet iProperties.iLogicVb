@@ -1,0 +1,62 @@
+﻿Dim oPartDoc As PartDocument = ThisDoc.Document
+Dim oDef As SheetMetalComponentDefinition = oPartDoc.ComponentDefinition
+If oPartDoc.FileSaveCounter <> 0 Then
+	Try
+		name = System.IO.Path.GetFileNameWithoutExtension(oPartDoc.FullDocumentName)
+	Catch
+		oPartDoc.Save
+	Finally
+		name = System.IO.Path.GetFileNameWithoutExtension(oPartDoc.FullDocumentName)
+	End Try
+	Dim oPartMat As MaterialAsset = oPartDoc.ActiveMaterial
+	Dim mat As String = oPartMat.DisplayName
+	Dim MatDensity As AssetValue = oPartMat.PhysicalPropertiesAsset.Item("structural_Density")
+	Dim dens As Double = MatDensity.Value
+	
+	Dim oUOfM As UnitsOfMeasure = oPartDoc.UnitsOfMeasure
+	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters
+	Dim oProject As PropertySet = oPartDoc.PropertySets("Design Tracking Properties")
+	Dim oSummary As PropertySet = oPartDoc.PropertySets("Inventor Summary Information")
+	Dim oInvSummary As PropertySet = oPartDoc.PropertySets("Inventor Document Summary Information")
+	Dim oCustom As PropertySet = oPartDoc.PropertySets("Inventor User Defined Properties")
+	
+	Dim dMaxSize, dMinSize As Double	
+	dMaxSize = Math.Max(oDef.FlatPattern.Length, oDef.FlatPattern.Width)
+	dMinSize = Math.Min(oDef.FlatPattern.Length, oDef.FlatPattern.Width)
+	Try : oUserParams("Довжина").Value = dMaxSize : Catch : oUserParams.AddByValue("Довжина", dMaxSize, oUOfM.LengthUnits) : End Try
+	Try : oUserParams("Ширина").Value = dMinSize : Catch : oUserParams.AddByValue("Ширина", dMinSize, oUOfM.LengthUnits) : End Try
+	
+	Dim PlateName_Length, PlateName_Width, PlateName_Thing As Double	
+	PlateName_Length = Round(Round(oUserParams("Довжина").Value, 4) / 1) * 1
+	PlateName_Width = Round(Round(oUserParams("Ширина").Value, 4) / 1) * 1	
+	PlateName_Thing = Round(Round(oDef.Thickness.Value*10, 4) / 0.01) * 0.01
+	
+	oProject("Part Number").Value = name.Substring(0, name.IndexOf(" "))
+	oProject("Catalog Web Link").Value = "ДСТУ 8540"
+	oSummary(“Subject”).Value = "Б-ПН-" & PlateName_Thing & ""
+	oSummary(“Revision Number”).Value = "Лист"
+	Try : oCustom("Довжина").Value = "" & Round(oUOfM.ConvertUnits(oUserParams("Довжина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм"
+	Catch : oCustom.Add("" & Round(oUOfM.ConvertUnits(oUserParams("Довжина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм", "Довжина") : End Try
+	Try : oCustom("Ширина").Value = "" & Round(oUOfM.ConvertUnits(oUserParams("Ширина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм"
+	Catch : oCustom.Add("" & Round(oUOfM.ConvertUnits(oUserParams("Ширина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм", "Ширина") : End Try
+		
+	If oInvSummary("Company").Value = "" Then
+		oSummary(“Title”).Value = "Лист " & PlateName_Thing & "-" & PlateName_Length & "×" & PlateName_Width & ""
+	Else
+		oSummary(“Title”).Value = name.Remove(0, name.IndexOf(" ") + 1)
+	End If
+	
+	Dim Area_Color As Double = iProperties.Area / 1000000
+	Dim dVolume As Double = iProperties.Volume
+	Dim Area_1 As Double = dVolume / PlateName_Thing
+	Try : oCustom("Area_Color").Value = Round(Area_Color, 3) : Catch : oCustom.Add(Round(Area_Color, 3), "Area_Color") : End Try
+	Try : oCustom("Mass_size").Value = Round((dVolume * dens) / 1000000, 2)
+	Catch : oCustom.Add(Round((dVolume * dens) / 1000000, 2), "Mass_size") : End Try
+	Try : oCustom("Main_size").Value = Round(Area_1/ 1000000, 3)
+	Catch : oCustom.Add(Round(Area_1/ 1000000, 3), "Main_size") : End Try
+	Try : oCustom("Stren_steel").Value = mat.Substring(0,mat.IndexOf(" ")) 'Клас міцності
+	Catch : oCustom.Add(mat.Substring(0,mat.IndexOf(" ")), "Stren_steel") : End Try
+	Try : oCustom("Stan_steel").Value = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала
+	Catch : oCustom.Add(mat.Remove(0, mat.IndexOf(" ") + 1), "Stan_steel") : End Try
+	
+End If

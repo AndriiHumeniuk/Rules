@@ -1,0 +1,139 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = ThisDoc.Document
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	Dim oTM As TransactionManager = oInvApp.TransactionManager
+	If TypeOf oDoc Is DrawingDocument Then
+		Dim oDraw As DrawingDocument = oDoc
+		Dim oSheets As Sheets = oDraw.Sheets
+		Dim maxHorzSize As Double = 2.5 'Максимальна відстань по горизонталі назви над видом.
+		Dim minHorzSize As Double = 0.8 'Мінімальна відстань по горизонталі назви над видом.
+		Dim minViewX, maxViewX, minViewY, maxViewY As Double
+		Dim posLabelX, posLabelY As Double
+		Dim newTM As Transaction = oTM.StartTransaction(oDraw, "ChangePosLabelViews")
+		For Each oSheet As Sheet In oSheets
+			For Each oView As DrawingView In oSheet.DrawingViews
+				If oView.ShowLabel Then
+					minViewX = oView.Position.X - oView.Width / 2
+					maxViewX = oView.Position.X + oView.Width / 2					
+					minViewY = oView.Position.Y - oView.Height / 2
+					maxViewY = oView.Position.Y + oView.Height / 2
+					posLabelX = oView.Label.Position.X
+					posLabelY = oView.Label.Position.Y
+					If oView.Label.Position.Y > maxViewY + maxHorzSize Then ' Назва виступає за допустиме максимальне горизонтальне
+						oView.Label.Position = oTG.CreatePoint2d(oView.Label.Position.X, maxViewY + maxHorzSize)
+						posLabelY = maxViewY + maxHorzSize
+					Else If oView.Label.Position.Y < maxViewY + minHorzSize Then ' Назва виступає за допустиме мінімальне горизонтальне
+						oView.Label.Position = oTG.CreatePoint2d(oView.Label.Position.X, maxViewY + minHorzSize)
+						posLabelY = maxViewY + minHorzSize			
+					End If
+					If posLabelX <= minViewX Or posLabelX >= maxViewX Then ' Центрування у випадку, якщо назва виступає зліва чи справа.
+						oView.Label.Position = oTG.CreatePoint2d(oView.Position.X, posLabelY)
+					End If
+					Call CheckTopView(oInvApp, oSheet, oView.Label, maxViewY + minHorzSize)
+					Call CheckMySize(oInvApp, oSheet, oView)
+				End If
+			Next
+		Next
+		newTM.End
+	Else
+		MessageBox.Show("Активний декумент не креслення. Правило призначене виключно для документа креслень.", "Помилка!")
+	End If
+End Sub
+
+Private Function CheckTopView(ByVal oInvApp As Inventor.Application, oSheet As Sheet, oLabel As DrawingViewLabel, minHorzSize As Double)	
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	Dim SetPosX As Double = oLabel.Position.X
+	Dim SetPosY As Double = oLabel.Position.Y
+	Dim minViewX, maxViewX, minViewY, maxViewY As Double
+	For Each oView As DrawingView In oSheet.DrawingViews
+		If oLabel.Parent.Name <> oView.Name Then
+			minViewX = oView.Position.X - oView.Width / 2
+			maxViewX = oView.Position.X + oView.Width / 2
+			minViewY = oView.Position.Y - oView.Height / 2
+			maxViewY = oView.Position.Y + oView.Height / 2
+			If SetPosX >= minViewX And SetPosX < maxViewX Then
+				If SetPosY < maxViewY Then
+					If SetPosY > minViewY Then ' Перевірка накладення на вид
+						If minHorzSize < minViewY - 1 Then
+							SetPosY = minViewY - 1
+							oLabel.Position = oTG.CreatePoint2d(SetPosX, SetPosY)						
+						Else
+							SetPosY = minHorzSize
+							oLabel.Position = oTG.CreatePoint2d(SetPosX, SetPosY)
+						End If
+					End If
+					For Each oDrawDim As DrawingDimension In oSheet.DrawingDimensions
+						Dim oParent As DrawingView
+						Try
+							Select Case oDrawDim.Type
+							Case ObjectTypeEnum.kLinearGeneralDimensionObject, ObjectTypeEnum.kAngularGeneralDimensionObject
+								oParent = oDrawDim.IntentOne.Geometry.Parent
+							Case ObjectTypeEnum.kRadiusGeneralDimensionObject, ObjectTypeEnum.kDiameterGeneralDimensionObject
+								oParent = oDrawDim.Intent.Geometry.Parent
+							End Select
+						Catch
+							Continue For
+						End Try
+						If oParent.Name = oView.Name Then ' Перевірка накладення на розмір
+							If oDrawDim.DimensionLine.StartPoint.X <> oDrawDim.DimensionLine.EndPoint.X Then
+								If SetPosX >= MinOfMany(oDrawDim.DimensionLine.StartPoint.X, oDrawDim.DimensionLine.EndPoint.X) And _
+									SetPosX < MaxOfMany(oDrawDim.DimensionLine.StartPoint.X, oDrawDim.DimensionLine.EndPoint.X) Then
+									If SetPosY > oDrawDim.DimensionLine.StartPoint.Y Then
+										If minHorzSize < oDrawDim.DimensionLine.StartPoint.Y - 1 Then
+											SetPosY = oDrawDim.DimensionLine.StartPoint.Y - 1
+											oLabel.Position = oTG.CreatePoint2d(SetPosX, SetPosY)						
+										Else
+											SetPosY = minHorzSize
+											oLabel.Position = oTG.CreatePoint2d(SetPosX, SetPosY)
+										End If
+'										Exit For
+									End If
+								End IF
+							End If
+						End If
+					Next
+'					Exit For
+				End If
+			End If
+		End If
+	Next
+End Function
+
+Private Function CheckMySize(ByVal oInvApp As Inventor.Application, oSheet As Sheet, oView As DrawingView)
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	Dim oLabel As DrawingViewLabel = oView.Label
+	Dim SetPosX As Double = oLabel.Position.X
+	Dim SetPosY As Double = oLabel.Position.Y
+	Dim minViewX, maxViewX, minViewY, maxViewY As Double
+	minViewX = oView.Position.X - oView.Width / 2
+	maxViewX = oView.Position.X + oView.Width / 2
+	minViewY = oView.Position.Y - oView.Height / 2
+	maxViewY = oView.Position.Y + oView.Height / 2
+	For Each oDrawDim As DrawingDimension In oSheet.DrawingDimensions
+		Dim oParent As DrawingView
+		Try
+			Select Case oDrawDim.Type
+			Case ObjectTypeEnum.kLinearGeneralDimensionObject, ObjectTypeEnum.kAngularGeneralDimensionObject
+				oParent = oDrawDim.IntentOne.Geometry.Parent
+			Case ObjectTypeEnum.kRadiusGeneralDimensionObject, ObjectTypeEnum.kDiameterGeneralDimensionObject
+				oParent = oDrawDim.Intent.Geometry.Parent
+			End Select
+		Catch
+			Continue For
+		End Try
+		If oParent.Name = oView.Name Then ' Перевірка накладення на розмір
+			If oDrawDim.DimensionLine.StartPoint.X <> oDrawDim.DimensionLine.EndPoint.X Then
+				If maxViewY <= oDrawDim.Text.Origin.Y Then ' Перевірка чи розмір знаходиться вище вида
+					If SetPosY <= oDrawDim.Text.Origin.Y + 1 Then ' Перевірка чи розмір знаходиться вище назви вида
+						' Перевірка чи лінії розміра знаходиться біля назви вида
+						If SetPosX >= MinOfMany(oDrawDim.DimensionLine.StartPoint.X, oDrawDim.DimensionLine.EndPoint.X) And _
+							SetPosX < MaxOfMany(oDrawDim.DimensionLine.StartPoint.X, oDrawDim.DimensionLine.EndPoint.X) Then
+							oLabel.Position = oTG.CreatePoint2d(SetPosX, oDrawDim.Text.Origin.Y + 1)
+						End If
+					End IF
+				End If
+			End If
+		End If
+	Next
+End Function

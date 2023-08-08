@@ -1,0 +1,63 @@
+﻿Sub main
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oADoc As AssemblyDocument = oDoc
+		Dim oDict As New Dictionary(Of String, Integer)
+		Dim sName As String
+		Dim oProgBar As Inventor.ProgressBar
+		Dim iRefDoc As Integer = 1
+		oProgBar = ThisApplication.CreateProgressBar(False, oADoc.AllReferencedDocuments.Count, "Count parameters...")
+		For Each oRefDoc As Document In oADoc.AllReferencedDocuments
+			oProgBar.Message = "Count parameters of component. Progress " & iRefDoc & " of " & oADoc.AllReferencedDocuments.Count & "."
+			oProgBar.UpdateProgress
+			If TypeOf oRefDoc Is AssemblyDocument Then
+				Dim oAsmDoc As AssemblyDocument = oRefDoc
+				If oAsmDoc.IsModifiable Then					
+					Dim oAsmDef As AssemblyComponentDefinition = oAsmDoc.ComponentDefinition
+					sName = oAsmDoc.PropertySets.Item("Inventor Summary Information").Item("Author").Value
+					If Not String.IsNullOrEmpty(sName) Then
+						If oAsmDef.Parameters.ModelParameters.Count <> 0 Then 
+							If oDict.ContainsKey(sName) Then
+								oDict(sName) = oDict(sName) + oAsmDef.Parameters.ModelParameters.Count
+							Else
+								oDict.Add(sName, oAsmDef.Parameters.ModelParameters.Count)
+							End If
+						End If
+					End If
+				End If
+			Else If TypeOf oRefDoc Is PartDocument Then
+				Dim oPartDoc As PartDocument = oRefDoc
+				If oPartDoc.IsModifiable Then
+					Dim oPartDef As PartComponentDefinition = oPartDoc.ComponentDefinition
+					sName = oPartDoc.PropertySets.Item("Inventor Summary Information").Item("Author").Value
+					If Not String.IsNullOrEmpty(sName) Then
+						If oPartDef.Parameters.ModelParameters.Count <> 0 Then 
+							If oDict.ContainsKey(sName) Then
+								oDict(sName) = oDict(sName) + oPartDef.Parameters.ModelParameters.Count
+							Else
+								oDict.Add(sName, oPartDef.Parameters.ModelParameters.Count)
+							End If
+						End If
+					End If
+				End If
+			End If
+			iRefDoc += 1
+		Next
+		oProgBar.Close()
+		If oDict.Count <> 0 Then
+			Dim iParams As New List(Of Integer)
+			iParams.AddRange(oDict.Values)
+			Dim iSum As Integer = iParams.Sum()
+			Dim dPersent As Double
+			iParams.Sort()
+			For iP As Integer = 0 To iParams.Count - 1
+				For i As Integer = 0 To oDict.Count - 1
+					If iParams(iP) = oDict.Values(i) Then
+						dPersent = (oDict.Values(i)/iSum)*100
+						MessageBox.Show("Параметрів - " & oDict.Values(i) & " (" & Round(dPersent, 3) & "%)", oDict.Keys(i))
+					End If
+				Next i
+			Next iP
+		End If
+	End If
+End Sub

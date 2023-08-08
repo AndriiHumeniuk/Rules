@@ -1,0 +1,119 @@
+﻿Sub main
+	Dim oDraw As DrawingDocument : oDraw = ThisDoc.Document
+	Dim oTM As TransactionManager = ThisApplication.TransactionManager	
+	Dim oSheets As Sheets = oDraw.Sheets
+	
+	If oSheets.Item(1).DrawingViews.Count = 0 Then
+		Exit Sub
+	End If
+	
+	Dim oSheet As Sheet
+	Dim oViews As DrawingViews
+	Dim oView As DrawingView
+	
+	ViewLetter = New String(){"A","B","C","D","E","F","G","H","J","K","L","M","N","P","R","S","T","U","V","W","X","Y"}
+	Dim ViewCount = 0
+	
+	Dim o1stViewScale As String = oSheets.Item(1).DrawingViews.Item(1).ScaleString
+    Dim oView_Number As String = "<StyleOverride Underline='False'><DrawingViewName/></StyleOverride>"
+	Dim oView_Scale As String = "<StyleOverride Underline='False'> (<DrawingViewScale/></StyleOverride>)"
+	Dim oView_Name As String
+	
+	Dim numbList As New ArrayList
+			
+	Dim newTM As Transaction = oTM.StartTransaction(oDraw, "ChangeViewsName")
+	
+	For i = 1 To oSheets.Count
+		numbList.Add(oSheets.Item(i).Name)
+	Next
+	
+	For Each oSheet In oSheets
+		oViews = oSheet.DrawingViews
+	    For Each oView In oViews
+			If oView.ShowLabel Then
+				
+				If Not IsNothing(oView.ParentView) Then
+					
+					Dim numbLetters As Double = ViewCount / ViewLetter.Length
+
+					If o1stViewScale = oView.ScaleString Then
+						oView_Name = oView_Number
+					Else
+						oView_Name = oView_Number & oView_Scale
+					End If
+										
+					If oView.ViewType = DrawingViewTypeEnum.kDetailDrawingViewType Or _
+						oView.ViewType = DrawingViewTypeEnum.kSectionDrawingViewType Or _
+						oView.ViewType = DrawingViewTypeEnum.kProjectedDrawingViewType Or _
+						oView.ViewType = DrawingViewTypeEnum.kAuxiliaryDrawingViewType Then
+						If numbLetters <= 1 Then
+							oView.Name = ViewLetter(ViewCount)
+						Else If numbLetters > 1 And numbLetters <= 2 Then
+							oView.Name = ViewLetter(0) & ViewLetter(ViewCount - ViewLetter.Length)
+						Else If numbLetters > 2 And numbLetters <= 3 Then
+							oView.Name = ViewLetter(1) & ViewLetter(ViewCount - ViewLetter.Length*2)
+						End If
+						
+						If oView.ViewType = DrawingViewTypeEnum.kSectionDrawingViewType And oView.Label.Text.Contains("-") Then
+							If oView.ParentView.Parent.Name = oView.Parent.Name Then
+								oView.Label.FormattedText = oView_Number & "-" & oView_Name
+							Else
+								oView.Label.FormattedText = oView_Number & "-" & oView_Name & " (" & numbList.IndexOf(oView.ParentView.Parent.Name) + 1 & ")"
+'								ChangeNameSumbols(oView.ParentView.Parent, oView, numbList)
+							End If
+						Else
+							If oView.ParentView.Parent.Name = oView.Parent.Name Then
+								oView.Label.FormattedText = oView_Name
+							Else
+								oView.Label.FormattedText = oView_Name & " (" & numbList.IndexOf(oView.ParentView.Parent.Name) + 1 & ")"
+'								ChangeNameSumbols(oView.ParentView.Parent, oView, numbList)
+							End If
+						End If
+						
+			            ViewCount = ViewCount + 1
+					End If
+				Else
+					If o1stViewScale = oView.ScaleString Then
+						oView_Name = oView_Number
+					Else
+						oView_Name = oView_Number & oView_Scale
+					End If
+					oView.Label.FormattedText = oView_Name
+				End If
+				Dim dDeg As Double = Round(oView.Rotation * 180 / PI, 2)
+				Do While dDeg > 360.01
+					dDeg = dDeg - 360
+				Loop
+				If dDeg <> 0 And dDeg <> 360 Then
+					Dim sDeg As String
+					Dim sRotate As String
+					If Abs(dDeg) < 180.01 Then
+						sDeg = Abs(dDeg) & ChrW(176)
+						If dDeg < 0 Then
+							sRotate = ChrW(&H21B7)
+						Else
+							sRotate = ChrW(&H21B6)
+						End If
+					Else
+						sDeg = Abs(dDeg) - 180 & ChrW(176)
+						If dDeg < 0 Then
+							sRotate = ChrW(&H21B6)
+						Else
+							sRotate = ChrW(&H21B7)
+						End If
+					End If
+			    	oView.Label.FormattedText = oView.Label.FormattedText & _
+					" <StyleOverride Font='@Arial Unicode MS' FontSize='0,8'>" & sRotate & " </StyleOverride>" & sDeg
+				End If		
+	        End If
+	    Next
+	Next
+	
+	newTM.End()
+	
+End Sub
+
+Private Sub ChangeNameSumbols(oSheet As Sheet, oView As SectionDrawingView, numbList As ArrayList)
+	'Метод для додавання номуру листа де розташований виносний вид, у випадку, якщо вид та розріз на різних листах.
+End Sub
+

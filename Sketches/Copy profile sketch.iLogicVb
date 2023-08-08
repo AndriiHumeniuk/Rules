@@ -1,0 +1,51 @@
+﻿Dim filename As String
+Dim ParthComp As String = "\\Comp59\Work SP\Templates\Rules\Sketches\"
+
+Select Case Parameter("Active_standart")
+Case "DIN 1025-2 IPB", "DIN 1025-4 IPBv", "DIN 1025-5 IPE", "EURONORM 53-62 HEA", "EURONORM 53-62 HEB", "EURONORM 53-62 HEM", "ГОСТ 26020-83 (Не діючий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\IPB IPBv IPE HEA HEB HEM ГОСТ26020-83.ipt"
+Case "ДСТУ 8768:2018"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Двотавр\Двотавр ДСТУ 8768_2018.ipt"
+Case "ДСТУ 8940:2019 (Квадратна)", "ДСТУ 8940:2019 (Прямокутна)", "ДСТУ EN 10210-2 (Квадратна)", "ДСТУ EN 10210-2 (Прямокутна)", "ДСТУ Б В.2.6-8-95 (Квадратна)", "ДСТУ Б В.2.6-8-95 (Прямокутна)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Труби квадратні\ДСТУ 8940 (Квадратна).ipt"
+Case "ДСТУ 2251:2018"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2251:2018.ipt"
+Case "ДСТУ EN 10056-1:2006 (Рівнобокий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик рівнобокий).ipt"
+Case "ДСТУ 8769_2018 (Нерівнобокий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 8769_2018 (Нерівнобокий).ipt"
+Case "ДСТУ EN 10056-1:2006 (Нерівнобокий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ EN 10056-1_2006 (Кутик нерівнобокий).ipt"
+Case "ДСТУ 2254-93 (Гнутий рівнобокий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2254-93 (Гнутий рівнобокий).ipt"
+Case "ДСТУ 2255-93 (Гнутий нерівнобокий)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Кутики\ДСТУ 2255-93 (Гнутий нерівнобокий).ipt"
+Case "DIN 1026-1"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-1.ipt"
+Case "DIN 1026-2"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\DIN 1026-2.ipt"
+Case "ДСТУ 3436-96"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Швелер\ДСТУ 3436-96.ipt"
+Case "ДСТУ 8936_2019", "ДСТУ 8938_2019", "ДСТУ 8939_2019", "ДСТУ 8943_2019", "ДСТУ EN 10210-2", "ДСТУ EN 10216-1", "ДСТУ ISO 1127_2013 (Серия 1)", "ДСТУ ISO 1127_2013 (Серия 2)", "ДСТУ ISO 1127_2013 (Серия 3)"
+filename = ParthComp & "Шаблони для копіювання ескізів профілів\Труби круглі\ДСТУ 8936_2019.ipt"
+End Select
+MessageBox.Show(filename, "Title")
+
+Dim PartDoc As PartDocument = ThisApplication.Documents.Open(filename, False)
+Dim PartcompDef As PartComponentDefinition = PartDoc.ComponentDefinition
+
+Dim ExtFeature As ExtrudeFeature = PartcompDef.Features.ExtrudeFeatures.Item(1)
+Dim oSketchToCopy As PlanarSketch = ExtFeature.Definition.Profile.Parent
+Dim oDoc As PartDocument = ThisDoc.Document
+Dim oPlane As WorkPlane = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kWorkPlaneFilter, "") '-pick the WorkPlane
+Dim Sketch2 As PlanarSketch = oDoc.ComponentDefinition.Sketches.Add(oPlane, False)
+
+oSketchToCopy.CopyContentsTo(Sketch2)
+
+If Parameter("Copy_center_point") = True
+Dim sketch As PlanarSketch = Sketch2
+Dim partDef As PartComponentDefinition = sketch.Parent
+Dim cp = partDef.WorkPoints.Item("Center Point")
+sketch.AddByProjectingEntity(cp)
+End If
+PartDoc.Close

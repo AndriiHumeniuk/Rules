@@ -1,0 +1,61 @@
+﻿If Parameter("PL") > 1 Then
+	Try
+		Dim name As String = ThisDoc.FileName(False)
+		If iProperties.Value("Project", "Part Number") <> name.Substring(0, name.IndexOf(" ")) Then
+			iProperties.Value("Project", "Part Number") = name.Substring(0, name.IndexOf(" "))
+		End If
+		If iProperties.Value(“Summary”, “Title”) <> name.Remove(0, name.IndexOf(" ") + 1) Then
+			iProperties.Value(“Summary”, “Title”) = name.Remove(0, name.IndexOf(" ") + 1)
+		End If
+		Dim oDoc As PartDocument = ThisDoc.Document
+		Dim oDocDef As PartComponentDefinition = oDoc.ComponentDefinition
+		Dim L_size As Double = Parameter("PL")
+		Dim WebLink As String = iProperties.Value("Project", "Catalog Web Link")
+		Dim NumberSize As String = iProperties.Value("Summary", "Subject")
+		Dim RevNumb As String = iProperties.Value("Project", "Revision Number")
+		Dim oDocMat As MaterialAsset = oDoc.ActiveMaterial
+		Dim mat As String = oDocMat.DisplayName
+		Dim MatDensity As AssetValue = oDocMat.PhysicalPropertiesAsset.Item("structural_Density")
+		Dim oDensity As Double = MatDensity.Value
+				
+		Round_y = iProperties.Value("Custom", "Round_y")
+		If Round_y <> 0 Then
+			If Round_y > 0 And Round_y < 1 Then
+				inc = Round_y
+				Leng = Round(Round(L_size, 4) / inc) * inc
+			ElseIf Round_y = 1 Then
+				Leng = Round(L_size)
+			ElseIf Round_y > 1 And Round_y < 10 Then
+				inc = Round_y / 10
+				Leng = (Round(Round((L_size / 10), 4) / inc) * inc) * 10
+			ElseIf Round_y >= 10 And Round_y < 100 Then
+				inc = Round_y / 100
+				Leng = (Ceil(Round((L_size / 100), 4) / inc) * inc) * 100
+			ElseIf Round_y >= 100 And Round_y < 1000 Then
+				inc = Round_y / 1000
+				Leng = (Ceil(Round((L_size / 1000), 4) / inc) * inc) * 1000
+			ElseIf Round_y >= 1000 Then
+				inc = 0.1
+				Leng = (Ceil(Round((L_size / 10000), 4) / inc) * inc) * 10000
+			End If
+			If iProperties.Value("Summary", "Company") = "" Then
+				If iProperties.Value(“Summary”, “Title”) <> "" & RevNumb & " " & NumberSize & ", L=" & Leng & " мм" Then
+					iProperties.Value(“Summary”, “Title”) = "" & RevNumb & " " & NumberSize & ", L=" & Leng & " мм"
+				End If
+				If Round_y = 0 Then
+					If iProperties.Value(“Summary”, “Title”) <> name.Remove(0, name.IndexOf(" ") + 1) Then
+						iProperties.Value(“Summary”, “Title”) = name.Remove(0, name.IndexOf(" ") + 1)
+					End If
+				End If
+			End If
+			iProperties.Value("Custom", "Main_size") = Leng / 1000
+		End If
+		
+		iProperties.Value("Custom", "Stren_steel") = mat.Substring(0, mat.IndexOf(" ")) 'Клас міцності
+   		iProperties.Value("Custom", "Stan_steel") = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала
+		
+		Dim Area_Part As Double = PI * Parameter("OD")
+		iProperties.Value("Custom", "Area_Color") = Round((Parameter("PL") * Area_Part) / 1000000, 3)
+		Catch
+	End Try	
+End If

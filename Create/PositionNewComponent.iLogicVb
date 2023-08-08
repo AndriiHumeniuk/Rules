@@ -1,0 +1,36 @@
+﻿Private Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	Dim oTM As TransactionManager = oInvApp.TransactionManager
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oAssDoc As AssemblyDocument = oDoc
+		Dim oAssDef As AssemblyComponentDefinition = oAssDoc.ComponentDefinition
+		Dim oSelSet As SelectSet = oAssDoc.SelectSet
+		If oSelSet.Count < 1 Then
+			MessageBox.Show("Потрібно обрати хочаб один компонент!", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Exit Sub
+		End If
+		Dim oAsmPlane As WorkPlane
+		Dim oPartPlane As WorkPlane
+		Dim oPartPlaneProxy As WorkPlaneProxy
+		Dim oConstrTransaction As Transaction
+		Dim sListOccs As New List(Of ComponentOccurrence)
+		For i As Integer = 1 To oSelSet.Count
+			If TypeOf oSelSet.Item(i) Is ComponentOccurrence Then
+				sListOccs.Add(oSelSet.Item(i))
+			End If
+		Next i
+		Dim newTM As Transaction = oTM.StartTransaction(oAssDoc, "Прив'язка_XYZ")
+		For iOcc As Integer = 0 To sListOccs.Count - 1
+			For i As Integer = 1 To 3
+				oAsmPlane = oAssDef.WorkPlanes.Item(i)
+				oPartPlane = sListOccs.Item(iOcc).Definition.WorkPlanes.Item(i)
+				Call sListOccs.Item(iOcc).CreateGeometryProxy(oPartPlane, oPartPlaneProxy)
+				Call oAssDef.Constraints.AddFlushConstraint(oPartPlaneProxy, oAsmPlane, 0)
+			Next i
+		Next
+		newTM.End
+	Else
+		MessageBox.Show("Дане праивило призначене для роботи зі збірками!", "Помилка!",MessageBoxButtons.OK,MessageBoxIcon.Error)
+	End If 
+End Sub

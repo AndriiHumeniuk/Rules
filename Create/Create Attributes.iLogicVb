@@ -1,0 +1,68 @@
+﻿Sub main
+	
+	Dim oDoc As Object
+	oDoc = ThisApplication.ActiveDocument
+	
+	Dim oCompDef As Object
+	oCompDef = oDoc.ComponentDefinition
+	
+	Dim oPane As WorkPlane
+	Dim oFace As Face
+	
+	' Faces
+	For i = 1 To oCompDef.SurfaceBodies.Item(1).Faces.Count
+		oFace = oCompDef.SurfaceBodies.Item(1).Faces.Item(i)
+		
+		sAttValue = String.Concat("Face_", i)
+		
+		'Create an attribute set
+		Dim oAttributeSets As AttributeSets = oFace.AttributeSets
+		Dim oAttributeSet As AttributeSet
+		Dim oAttribute As Attribute
+		
+		Try
+			If oFace.AttributeSets.NameIsUsed(sAttValue) Then
+				oFace.AttributeSets(sAttValue).Delete
+			End If
+			oAttributeSet = oAttributeSets.Add(sAttValue)
+			Trace.WriteLine("iLogic: Success for : " & sAttValue)
+		Catch ex As Exception
+			Trace.WriteLine("iLogic: Debug Error for :" & sAttValue)
+		End Try
+	Next i
+	
+	' Workplanes
+	For i = 1 To oCompDef.WorkPlanes.Count
+		oPlane = oCompDef.WorkPlanes.Item(i)
+		
+		' Add new attributes/workplanes here
+		If oPlane.Name = "XZ_Plane" Then
+			sAttValue = "XZ_Plane"
+		ElseIf oPlane.Name = "YZ_Plane" Then
+			sAttValue = "YZ_Plane"
+		ElseIf oPlane.Name = "XY_Plane" Then
+			sAttValue = "XY_Plane"
+		Else
+			Continue For
+		End If
+		
+		' Create an attribute set.
+		Dim oAttributeSets As AttributeSets = oPlane.AttributeSets
+		Dim oAttributeSet As AttributeSet
+		Dim oAttribute As Attribute
+		
+		Try
+			If oPlane.AttributeSets.NameIsUsed(sAttValue) Then
+				oPlane.AttributeSets(sAttValue).Delete
+			End If
+		
+			oAttributeSet = oAttributeSets.Add(sAttValue)
+			Trace.WriteLine("iLogic: Success for : " & sAttValue)
+		Catch ex As Exception
+			Trace.WriteLine("iLogic: Debug Error for : " & sAttValue)
+		End Try
+	Next i
+	
+	MessageBox.Show("Rule Comlete", "Done", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1)
+	
+End Sub

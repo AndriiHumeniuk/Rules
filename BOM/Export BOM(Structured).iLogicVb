@@ -1,0 +1,149 @@
+﻿Sub Main
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	If TypeOf oDoc Is AssemblyDocument Then
+		Dim oAssDoc As AssemblyDocument = oDoc
+		If CheckDocMiss(oAssDoc) Then Exit Sub
+		Call WorkWithAssembly(oAssDoc)
+	Else If TypeOf oDoc Is DrawingDocument Then
+		Dim oDrawDoc As DrawingDocument = oDoc
+		Dim oAssDoc As AssemblyDocument = oDrawDoc.ReferencedDocuments.Item(1)
+		If CheckDocMiss(oAssDoc) Then Exit Sub
+		Call WorkWithAssembly(oAssDoc)
+	Else
+		MessageBox.Show("This rule can only be run in an assembly or a drawing files.", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	End If
+End Sub
+
+Private Sub WorkWithAssembly(ByVal oDoc As AssemblyDocument)
+			
+	Dim oDef As AssemblyComponentDefinition = oDoc.ComponentDefinition
+	Dim oBOM As BOM = oDef.BOM
+	Dim oBOMViewStruc As BOMView = GetBOMstructure(oBOM)
+	If IsNothing(oBOMViewStruc) Then Exit Sub
+		
+    Dim oProgressBar As Inventor.ProgressBar
+	oProgressBar = ThisApplication.CreateProgressBar(False, oBOMViewStruc.BOMRows.Count, "Exporting parameters...")
+    oProgressBar.Message = ("Loading...")
+	
+	Dim sFullDocName As String = oDoc.FullDocumentName
+	Dim sJobBOMName As String = String.Concat(sFullDocName.Substring(0, sFullDocName.IndexOf(".iam")), "(Structured)", ".xlsm")	
+	Dim sJobBOMTempName As String = "\\Comp59\Work SP\Templates\Rules\BOM\BOM(Structured).xlsm"
+	
+	Try
+		IO.File.Copy(sJobBOMTempName, sJobBOMName, True)
+	Catch ex As Exception	
+		MessageBox.Show(ex.Message)
+	End Try
+	
+	GoExcel.DisplayAlerts = False
+	GoExcel.Open(sJobBOMName, "BOM")
+	Dim iCurrRow As Integer = 7
+	
+	For Each oRow As BOMRow In oBOMViewStruc.BOMRows
+		Call QuertyRowProperties(oRow, sJobBOMName, iCurrRow)
+		iCurrRow += 1
+        oProgressBar.Message = ("Exporting parts parameters in Excel. Progress " & i & " of " & oBOMViewStruc.BOMRows.Count & ".")
+        oProgressBar.UpdateProgress
+	Next
+	
+	GoExcel.CellValue("G1") = String.Concat("", iProperties.Value("Project", "Part Number"))
+	oTimeCrateAssemb = String.Concat("", iProperties.Value("Project", "Creation Date"))
+	GoExcel.CellValue("J4") = oTimeCrateAssemb. Substring(0,oTimeCrateAssemb.IndexOf(" "))
+	GoExcel.CellValue("J5") = String.Concat("", Round((iProperties.Value("Project", "Mass")/1000),2))
+	GoExcel.CellValue("C1") = String.Concat("", iProperties.Value("Summary", "Author"))
+	GoExcel.CellValue("C2") = String.Concat("", iProperties.Value("Project", "Checked By"))
+	GoExcel.CellValue("C5") = String.Concat("", iProperties.Value("Project", "Mfg Approved By"))
+	GoExcel.CellValue("C4") = String.Concat("", iProperties.Value("Project", "Engr Approved By"))
+	GoExcel.CellValue("E1") = String.Concat("", iProperties.Value("Summary", "Title")) 
+	GoExcel.CellValue("C3") = String.Concat("", iProperties.Value("Project", "Authority"))
+	GoExcel.CellValue("G4") = String.Concat("", iProperties.Value("Summary", "Company"))
+	
+	Try
+		excelApp = GoExcel.Application.Run("'" & sJobBOMName & "'!Print_BOM")
+	Catch
+	Finally
+		excelApp = Nothing
+	End Try
+	GoExcel.Save
+	oProgressBar.Close
+		
+	Process.Start(sJobBOMName)
+End Sub
+
+Public Function QuertyRowProperties(ByVal oRow As BOMRow, ByVal sJobBOMName As String, ByVal iCurrRow As Integer)		
+	Dim oCompDef As ComponentDefinition = oRow.ComponentDefinitions.Item(1)
+	Dim oPropSets As PropertySets
+	Dim oStren, oStan As Inventor.Property
+	oPropSets = oCompDef.Document.PropertySets
+	
+	oInventorSummaryInformation = oPropSets.Item("Inventor Summary Information")
+	oDesignTrackingPropertySet = oPropSets.Item("Design Tracking Properties")
+	oCustomPropertySet = oPropSets.Item("Inventor User Defined properties")
+
+	oItemNumberProperty = oRow.ItemNumber
+	oPartNumProperty = oDesignTrackingPropertySet.Item("Part Number")
+'	oDescripProperty = oDesignTrackingPropertySet.Item("Description")
+'	oDesignerProperty = oDesignTrackingPropertySet.Item("Designer")
+'	oStockNumber = oDesignTrackingPropertySet.Item("Stock Number")
+	oStandard = oDesignTrackingPropertySet.Item("Catalog Web Link")
+'	oMaterial = oDesignTrackingPropertySet.Item("Material")
+	oMass = oDesignTrackingPropertySet.Item("Mass")
+	oComments = oInventorSummaryInformation.Item("Comments")
+	oTitleProperty = oInventorSummaryInformation.Item("Title")
+			
+	GoExcel.CellValue("A" & iCurrRow) = oItemNumberProperty
+	GoExcel.CellValue("B" & iCurrRow) = oPartNumProperty.Value
+	GoExcel.CellValue("H" & iCurrRow) = oRow.ItemQuantity
+	GoExcel.CellValue("E" & iCurrRow) = oTitleProperty.Value
+	GoExcel.CellValue("F" & iCurrRow) = oStandard.Value
+	
+	For Each oParam As Inventor.Property In oCustomPropertySet
+		If oParam.Name.Contains("Stren_steel") Then
+			oStren = oCustomPropertySet.Item("Stren_steel")
+		Else If oParam.Name.Contains("Stan_steel") Then
+			oStan = oCustomPropertySet.Item("Stan_steel")
+		End If	
+	Next
+	
+	If oStren IsNot Nothing And oStan IsNot Nothing Then
+		GoExcel.CellValue("G" & iCurrRow) = oStren.Value & " " & oStan.Value
+	Else If oStren IsNot Nothing Then
+		GoExcel.CellValue("G" & iCurrRow) = oStren.Value
+	End If
+	
+	GoExcel.CellValue("I" & iCurrRow) = Round((oMass.Value)/1000,2)
+	GoExcel.CellValue("J" & iCurrRow) = oComments.Value
+End Function
+
+Private Function GetBOMstructure(ByVal oBOM As BOM) As BOMView ' Отримати структурну специфікацію
+	
+	Dim sLanguageBOM, sSortItem As String
+	
+	Select Case ThisApplication.LanguageCode
+	Case "en-US"
+		sLanguageBOM = "Structured"
+		sSortItem = "Item"
+	Case "ru-RU"
+		sLanguageBOM = "Структурированный"
+		sSortItem = "Номер"
+	Case Else
+		Exit Function
+	End Select
+	
+	If oBOM.StructuredViewEnabled = False Then oBOM.StructuredViewEnabled = True
+	If oBOM.StructuredViewFirstLevelOnly = False Then oBOM.StructuredViewFirstLevelOnly = True
+	oBOM.BOMViews.Item(sLanguageBOM).Sort(sSortItem, True)
+	
+	Return oBOM.BOMViews.Item(sLanguageBOM)
+End Function
+
+Private Function CheckDocMiss(ByVal oDoc As Document) As Boolean ' Перевірка на наявність втрачених документів
+	For Each oRefDoc As DocumentDescriptor In oDoc.ReferencedDocumentDescriptors
+		If Not oRefDoc.ReferenceSuppressed Then
+			If oRefDoc.ReferenceMissing Then
+				Return True			
+			End If
+		End If
+	Next
+	Return False
+End Function

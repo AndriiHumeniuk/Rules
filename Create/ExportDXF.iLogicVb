@@ -1,0 +1,122 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oCM As CommandManager = oInvApp.CommandManager
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	Dim sFileName As String
+	Dim sPath As String = CheckFolder(oDoc)
+	If TypeOf oDoc Is PartDocument Then
+		If CheckPart(oDoc) Then Exit Sub
+		sFileName = CheckFullName(oDoc)
+		Call CreateDXF(oCM, oDoc, sPath & sFileName)
+		If System.IO.File.Exists(sPath & sFileName) Then
+			System.Diagnostics.Process.Start("explorer.exe", "/select,""" & sPath & sFileName & """")
+		End If
+	Else If TypeOf oDoc Is AssemblyDocument Then
+		Call WorkingWithAssembly(oInvApp, oDoc, sPath)
+	Else If TypeOf oDoc Is DrawingDocument Then
+		Dim oDDoc As DrawingDocument = oDoc
+		If oDDoc.Sheets.Count = 0 Then Exit Sub
+		If oDDoc.Sheets(1).DrawingViews.Count = 0 Then Exit Sub
+		Dim oRefDoc As Document = oDDoc.Sheets(1).DrawingViews(1).ReferencedDocumentDescriptor.ReferencedDocument
+		If TypeOf oRefDoc Is AssemblyDocument Then
+			Call WorkingWithAssembly(oInvApp, oRefDoc, sPath)
+		Else If TypeOf oRefDoc Is PartDocument Then
+			If CheckPart(oRefDoc) Then Exit Sub
+			sFileName = CheckFullName(oRefDoc)
+			Call CreateDXF(oCM, oRefDoc, sPath & sFileName)
+			If System.IO.File.Exists(sPath & sFileName) Then
+				System.Diagnostics.Process.Start("explorer.exe", "/select,""" & sPath & sFileName & """")
+			End If
+		End If
+	End If
+End Sub
+
+Private Function CheckPart(ByVal oPDoc As Document) As Boolean
+	If oPDoc.PropertySets("Design Tracking Properties")("Catalog Web Link").Value = "ДСТУ 8540" Then Return False
+	Return True
+End Function
+
+Private Function CheckFolder(ByVal oPDoc As Document) As String
+	Dim sPath As String = System.IO.Path.GetDirectoryName(oPDoc.File.FullFileName) & "\DXF Files"
+	If Not System.IO.Directory.Exists(sPath) Then System.IO.Directory.CreateDirectory(sPath)
+	Return sPath
+End Function
+
+Private Function CheckFullName(ByVal oPDoc As PartDocument, Optional ByVal iQty As Integer = 0) As String
+	Dim sFileName As String = System.IO.Path.GetFileNameWithoutExtension(oPDoc.FullFileName)
+	If iQty = 0 Then : sFileName = "\" & sFileName & ".dxf"
+	Else : sFileName = "\" & sFileName & " (" & iQty & ").dxf"
+	End If
+	Return sFileName
+End Function
+
+Private Sub WorkingWithAssembly(ByVal oInvApp As Inventor.Application, ByVal oAsmDoc As AssemblyDocument, ByVal sPath As String)
+	Dim oCM As CommandManager = oInvApp.CommandManager
+	Dim oRefDocs As DocumentsEnumerator = oAsmDoc.AllReferencedDocuments
+    Dim oPBar As Inventor.ProgressBar
+	oPBar = oInvApp.CreateProgressBar(False, oRefDocs.Count, "Exporting DXF...")
+    oPBar.Message = ("Loading...")
+	Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
+	For i As Integer = 1 To oRefDocs.Count
+        oPBar.Message = ("Create DXF files. Progress " & i & " of " & oRefDocs.Count & ".")
+        oPBar.UpdateProgress
+		If Not TypeOf oRefDocs(i) Is PartDocument Then Continue For
+		If CheckPart(oRefDocs(i)) Then Continue For
+		If oOccs.AllReferencedOccurrences(oRefDocs(i)).Count > 0 Then
+			sFileName = CheckFullName(oRefDocs(i), oOccs.AllReferencedOccurrences(oRefDocs(i)).Count)
+			Dim oPDoc As PartDocument = oInvApp.Documents.Open(oRefDocs(i).FullFileName, True)				
+			Call CreateDXF(oCM, oPDoc, sPath & sFileName)
+			oPDoc.Close()
+		End If
+	Next i
+	oPBar.Close()
+	If System.IO.File.Exists(sPath & sFileName) Then
+		System.Diagnostics.Process.Start("explorer.exe", "/select,""" & sPath & sFileName & """")
+	End If
+End Sub
+
+Private Sub CreateDXF(ByVal oCM As CommandManager, ByVal oPDoc As PartDocument, ByVal sName As String)
+	Dim oSS As SelectSet = oPDoc.SelectSet
+	Select Case oPDoc.SubType
+		Case "{4D29B490-49B2-11D0-93C3-7E0706000000}"
+			Dim dMaxArea As Double
+			Dim oBody As SurfaceBody = oPDoc.ComponentDefinition.SurfaceBodies.Item(1)
+			For i As Integer = 1 To oBody.Faces.Count
+				If oBody.Faces(i).Evaluator.Area > dMaxArea Then dMaxArea = oBody.Faces(i).Evaluator.Area
+			Next i
+			For i As Integer = 1 To oBody.Faces.Count
+				If oBody.Faces(i).Evaluator.Area = dMaxArea Then
+					oCM.PostPrivateEvent(PrivateEventTypeEnum.kFileNameEvent, sName)
+					oSS.Select(oBody.Faces(i))
+					oCM.ControlDefinitions("GeomToDXFCommand").Execute()
+					oSS.Clear()
+					Exit For
+				End If
+			Next i
+		Case "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}"
+			Dim oCompDef As SheetMetalComponentDefinition = oPDoc.ComponentDefinition
+			If Not oCompDef.HasFlatPattern Then : oCompDef.Unfold
+			Else : oCompDef.FlatPattern.Edit
+			End If
+			Dim sOut As String = "FLAT PATTERN DXF?AcadVersion=2018" _
+		                       & "&InteriorProfileLayer=IV_INTERIOR_PROFILES" _
+'		                       & "&InteriorProfilesLayerColor=255;255;0" _
+'		                       & "&OuterProfileLayer=IV_EXTERIOR_PROFILES" _
+'		                       & "&InvisibleLayers=IV_TANGENT" _
+'		                       & "&SimplifySplines=True" _
+'		                       & "&BendLayerLineType=37633" _
+'		                       & "&BendLayerColor=255;255;0" _
+'		                       & "&BendUpLayerLineType=37633" _
+'		                       & "&BendUpLayerColor=255;255;0" _
+'		                       & "&BendDownLayerLineType=37633" _
+'		                       & "&BendDownLayerColor=255;255;0" _
+'		                       & "&FeatureProfilesLayerLineType=37633" _
+'		                       & "&FeatureProfilesLayerColor=255;255;0" _
+'		                       & "&FeatureProfilesUpLayerLineType=37633" _
+'		                       & "&FeatureProfilesUpLayerColor=255;255;0" _
+'		                       & "&FeatureProfilesDownLayerLineType=37633" _
+'		                       & "&FeatureProfilesDownLayerColor=255;255;0"
+			oCompDef.DataIO.WriteDataToFile(sOut, sName)
+			oCompDef.FlatPattern.ExitEdit
+	End Select
+End Sub

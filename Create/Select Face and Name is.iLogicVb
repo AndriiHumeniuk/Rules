@@ -1,0 +1,10 @@
+﻿Sub main()
+
+	Dim oFace As Face
+	Dim iLogicAuto = iLogicVb.Automation
+	Dim oNamedEntities = iLogicAuto.GetNamedEntities(ThisDoc.Document)
+	oFace = ThisApplication.CommandManager.Pick(Inventor.SelectionFilterEnum.kPartFaceFilter, "Select face " & + 1)
+	Dim sAttValue As String = String.Concat("Face_", + 1)
+	oNamedEntities.SetName(oFace, sAttValue)
+		
+End Sub

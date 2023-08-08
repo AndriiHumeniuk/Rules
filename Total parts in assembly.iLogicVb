@@ -1,0 +1,187 @@
+﻿Sub Main
+'Get current document
+doc = ThisDoc.Document
+Dim oAssyDef As AssemblyComponentDefinition = doc.ComponentDefinition
+'Get the BOM object
+Dim oBOM As BOM = oAssyDef.BOM
+'enable the Parts Only View
+oBOM.PartsOnlyViewEnabled = True
+'Get the Parts Only view of the BOM
+Dim oBOMViewPO As BOMView = oBOM.BOMViews.Item("Только детали")
+'declare variable for each BOM row.
+Dim oBOMRowPO As BOMRow
+
+'For each row in the Parts Only BOM, do the following
+For Each oBOMRowPO In oBOMViewPO.BOMRows
+    'Set a reference to the primary ComponentDefinition of the row
+    Dim oCompDef As ComponentDefinition = oBOMRowPO.ComponentDefinitions.Item(1)
+    
+    'get the full filename associated to the component in the row. ex: c:\temp\part1.ipt
+    Dim CompFullDocumentName As String = oCompDef.Document.FullDocumentName
+    Dim CompFileNameOnly As String
+    'get the location of the last backslash
+    Dim index As Integer = CompFullDocumentName.LastIndexOf("\")
+    'get the filename only from the full filename
+    CompFileNameOnly = CompFullDocumentName.Substring(index+1)
+    
+    'MessageBox.Show(CompFileNameOnly)
+    
+    'get the Qty value in the current row
+    Dim Qty As String = oBOMRowPO.ItemQuantity
+    
+    'check to see if the component is a library part, cc part or read only.
+    Dim IsLibCCReadonly As Boolean = LibCCReadonlyChecker(CompFullDocumentName)
+    
+    'if the file is NOT a library part, cc part or read only.
+    If IsLibCCReadonly = False Then
+        'set following custom iproperty to equal the QTY from the row
+        iProperties.Value(CompFileNameOnly, "Custom", "TotalParts") = Qty
+    End If
+Next
+
+'at this time, the qty value for all parts have been copied to the custom property.'next, the following code will cycle through only the subassemblies.
+
+'if the Structured BOM view is enabled then...
+If oBOM.StructuredViewEnabled Then
+    'If show First Level is set then turn it off. This will set it to All Levels
+    If oBOM.StructuredViewFirstLevelOnly Then
+        oBOM.StructuredViewFirstLevelOnly = False
+    End If
+Else
+    'enable the Structured BOM view
+    oBOM.StructuredViewEnabled = True
+    'set the FirstLevelOnly to false therefore make it All Levels
+    oBOM.StructuredViewFirstLevelOnly = False
+End If
+
+'Get the Structured view of the BOM
+Dim oBOMViewStruc As BOMView = oBOM.BOMViews.Item("Структурированный")
+'declare variable for each BOM row.
+Dim oBOMRowStruc As BOMRow
+'Create a blank array(list). This will be used to store a list of all subassemblies for comparing if the subassembly already exist.
+Dim arrSubAssemblyList As New ArrayList
+
+'call a subroutine to cycle through the structured BOM. It will need the collection of rows, the subassembly list, and 1 is the initial parentqty.
+Call QueryBOMRowProperties(oBOMViewStruc.BOMRows, arrSubAssemblyList, 1)
+
+End Sub
+
+Private Sub QueryBOMRowProperties(oBOMRows As BOMRowsEnumerator, arrSubAssembly As ArrayList, oParentQty As Integer)
+
+'declare a incrementer variable
+Dim i As Long
+'for each row in the structured BOM
+For i = 1 To oBOMRows.Count
+    'get the row based on the incrementer
+    Dim oBOMRowStruc As BOMRow = oBOMRows.Item(i)
+    'get the component definition assocated with the row
+    Dim oCompDef As ComponentDefinition = oBOMRowStruc.ComponentDefinitions.Item(1)
+    Dim oQty As Integer
+    
+    'If the component is an assembly and it's bom structure is Normal then do the following. else do nothing
+    If TypeOf oCompDef Is AssemblyComponentDefinition And oCompDef.BOMStructure = BOMStructureEnum.kNormalBOMStructure Then
+            'get the full filename associated to the component in the row. ex: c:\temp\subassembly.iam
+            Dim CompFullDocumentName As String = oCompDef.Document.FullDocumentName
+            Dim CompFileNameOnly As String
+            'get the location of the last backslash
+            Dim index As Integer = CompFullDocumentName.LastIndexOf("\")
+            'get the filename only from the full filename
+            CompFileNameOnly = CompFullDocumentName.Substring(index+1)
+            'MessageBox.Show(CompFileNameOnly)
+            
+            'get the qty of the row and multiply by the parent qty.
+            oQty = oBOMRowStruc.ItemQuantity * oParentQty
+            
+            'create a variable that will be used to get the qty of the subassembly if it was used elsewhere
+            Dim additionalQty As Integer = 0
+            'if the subassembly list is not empty then...
+            If arrSubAssembly.Count <> 0 Then
+                'create a counter. this will be used to determine which item in the subassembly array (list) when it finds a match.
+                'this counter will be used to edit that item with the new qty.
+                Dim counter As Integer = 0
+                'for each item in the subassembly array (list) starting at 0 (first item) to last item
+                For j As Integer = 0 To arrSubAssembly.Count-1
+                    'get the location of the colon
+                    Dim commaindex As Integer = arrSubAssembly(j).indexof(":")
+                    'get just the file name
+                    Dim CompName As String = arrSubAssembly(j).substring(0,commaindex)
+                    
+                    'if the file name of the current row matches the current item in the subassembly array (list) then...
+                    If CompName = CompFileNameOnly Then
+                        'set the additional qty to the qty found in the subassembly array (list)
+                        additionalQty = arrSubAssembly(j).substring(commaindex+1)
+                        'set the counter equal to the item in the subassembly array (list)
+                        counter = j
+                        'since a match is found, we need to exit the for loop so that counter no longer increments.
+                        'so Set j To the number of items in the subassembly array. this will exit out the for loop.
+                        j = arrSubAssembly.Count
+                    Else
+                        'increase the counter
+                        counter += 1
+                    End If
+                Next
+                
+                'if additional qty was not changed then there was no match. It will be a new item in the subassembly array (list)
+                If additionalQty = 0 Then
+                    'add the subassambly to the subassembly array (list)
+                    arrSubAssembly.Add(CompFileNameOnly & ":" & oQty)
+                Else
+                    'if it did find a match, then update the qty for that item in the subassembly array (list)
+                    arrSubAssembly(counter) = CompFileNameOnly & ":" & oQty + additionalQty
+                End If
+            Else
+                'add the first subassembly to the list. It will add the filename and the qty separated by a colon. ex. subassembly.iam:2
+                arrSubAssembly.Add(CompFileNameOnly & ":" & oQty)
+            End If
+            
+            'check to see if the component is a library part, cc part or read only.
+            Dim IsLibCCReadonly As Boolean = LibCCReadonlyChecker(CompFullDocumentName)
+            
+            'if the file is NOT a library part, cc part or read only.
+            If IsLibCCReadonly = False Then
+                'set following custom iproperty to equal the QTY from the row plus the additional qty value
+                iProperties.Value(CompFileNameOnly, "Custom", "TotalParts") = oQty + additionalQty
+            
+                'Recursively iterate child rows if present.
+                If Not oBOMRowStruc.ChildRows Is Nothing Then
+                    'recall the subroutine, push the childrows of the sub, sub assembly array (list), and the qty of the subassembly
+                    Call QueryBOMRowProperties(oBOMRowStruc.ChildRows, arrSubAssembly, oQty)
+                End If
+            End If
+        End If
+    Next
+End Sub
+
+Private Function LibCCReadonlyChecker(filename As String) As Boolean
+' Get the active project
+Dim oProject As DesignProject = ThisApplication.DesignProjectManager.ActiveDesignProject
+' Get all the library paths
+Dim oLibraryPaths As ProjectPaths = oProject.LibraryPaths
+Dim oLibraryPath As ProjectPath
+
+'for each library path in the list of all library paths
+For Each oLibraryPath In oLibraryPaths
+    'get the library path
+    Dim oLibs As String = oLibraryPath.Path
+    'if the file is in a library path then Return True
+    If filename.Contains(oLibs) = True Then
+        Return True
+    End If
+Next
+
+'if the file is in the CC location then Return True
+If filename.Contains(oProject.ContentCenterPath) = True Then
+    Return True
+End If
+
+'get read only status
+Dim File_Attr As Long = System.IO.File.GetAttributes(filename)
+'if the file is readonly or readonly and archieve then Return True
+If File_Attr = 1 Or File_Attr = 33 Then
+    Return True
+End If
+
+'return False if it's not a library, CC or a Readonly part.
+Return False
+
+End Function

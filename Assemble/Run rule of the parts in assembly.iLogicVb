@@ -1,0 +1,9 @@
+﻿iLogicVb.UpdateWhenDone = True
+Dim oAsm As AssemblyDocument = ThisDoc.Document
+For Each oRefDoc As Document In oAsm.AllReferencedDocuments
+	If oRefDoc.DocumentType = DocumentTypeEnum.kPartDocumentObject AndAlso _
+		oAsm.ComponentDefinition.Occurrences.AllReferencedOccurrences(oRefDoc).Count > 0
+		On Error Resume Next
+		iLogicVb.Automation.RunRule(oRefDoc, "iProperties for Library(beam)")
+	End If
+Next

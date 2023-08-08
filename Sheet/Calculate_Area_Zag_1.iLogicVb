@@ -1,0 +1,10 @@
+﻿Dim oDoc As PartDocument = ThisDoc.Document
+Dim oDef As SheetMetalComponentDefinition = oDoc.ComponentDefinition
+If oDef.MassProperties.Mass <> 0 Then
+	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters	
+	Try
+		oUserParams("Area_Zag_1").Value = SheetMetal.FlatExtentsArea / 100
+	Catch
+		oUserParams.AddByValue("Area_Zag_1", SheetMetal.FlatExtentsArea/100, "m m")
+	End Try
+End If
