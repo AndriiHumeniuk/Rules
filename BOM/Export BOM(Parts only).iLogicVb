@@ -103,12 +103,14 @@ Private Function WritingExcelBOM(ByVal oPropComps As List(Of PropertiesOfCompone
 	Static iCurrentRow As Integer = 2
 	For Each oPropComp As PropertiesOfComponent In oPropComps
 		If oPropComp.TotlNumb <= 1300 And oPropComp.oBOMStruc = BOMStructureEnum.kNormalBOMStructure Then
-			If oPropComp.TotlNumb >= 1000 And oPropComp.TotlNumb < 1211 Then
-				oPropComp.TotlNumb = oPropComp.TotlNumb - Round((oPropComp.Volume / oPropComp.Area_1)*10, 3)
-			End If
 			GoExcel.CellValue("A" & iCurrentRow) = oPropComp.RevNumb & " " & oPropComp.Subject & ", " & oPropComp.Stand & vbLf &
 												"Матеріал: " & oPropComp.Stren_steel '& " " & oStan.Value
-			GoExcel.CellValue("B" & iCurrentRow) = oPropComp.Main_size * oPropComp.QTY
+			If oPropComp.TotlNumb >= 1000 And oPropComp.TotlNumb < 1212 Then
+				oPropComp.TotlNumb = oPropComp.TotlNumb - Round((oPropComp.Volume / oPropComp.Area_1)*10, 3)
+				GoExcel.CellValue("B" & iCurrentRow) = (oPropComp.Main_size*100) * oPropComp.QTY
+			Else				
+				GoExcel.CellValue("B" & iCurrentRow) = oPropComp.Main_size * oPropComp.QTY
+			End If
 			GoExcel.CellValue("C" & iCurrentRow) = oPropComp.Measu
 		Else
 			GoExcel.CellValue("A" & iCurrentRow) = oPropComp.RevNumb & " " & oPropComp.Stand & vbLf & oPropComp.Subject
