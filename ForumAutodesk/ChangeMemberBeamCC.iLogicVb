@@ -1,0 +1,66 @@
+﻿Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oAsmDoc As AssemblyDocument = oInvApp.ActiveDocument
+	Dim oContentCenter As ContentCenter = oInvApp.ContentCenter
+	Dim oUsParams As UserParameters = oAsmDoc.ComponentDefinition.Parameters.UserParameters
+	
+	Dim oUOfM As UnitsOfMeasure = oAsmDoc.UnitsOfMeasure
+	Dim oCustom As PropertySet = oAsmDoc.PropertySets("Inventor User Defined Properties")
+	Dim oDesignProps As PropertySet = oAsmDoc.PropertySets("Design Tracking Properties")
+	
+	Dim oWeigt_KG, oWeigt_Lbs, oStockNumb As Inventor.Property
+	Try : oWeigt_KG = oCustom("CAM-Weight Kg")
+	Catch : oWeigt_KG = oCustom.Add("", "CAM-Weight Kg") : End Try
+	Try : oWeigt_Lbs = oCustom("CAM-Weight Lbs")
+	Catch : oWeigt_Lbs = oCustom.Add("", "CAM-Weight Lbs") : End Try
+	oStockNumb = oDesignProps("Stock Number")
+	oWeigt_KG.Value = ""
+	oWeigt_Lbs.Value = ""
+	oStockNumb.Value = ""
+	
+	Dim oOcc As ComponentOccurrence
+	oOcc = oInvApp.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
+										"Select component...")
+	If oOcc Is Nothing Then Exit Sub
+		
+	Dim oDef As PartComponentDefinition = oOcc.Definition
+	Dim oOccDoc As PartDocument = oDef.Document
+	Dim oCCPropSet As PropertySet
+	Try : oCCPropSet = oOccDoc.PropertySets.Item("Content Library Component Properties")
+	Catch : End Try
+    If oCCPropSet Is Nothing Then
+		MessageBox.Show("The Part is not a CC part.")
+        Exit Sub
+    End If
+	
+	Dim dMass As Double = oOcc.MassProperties.Mass
+	oWeigt_KG.Value = Round(dMass, 2)
+	oWeigt_Lbs.Value = Round(oUOfM.ConvertUnits(dMass, UnitsTypeEnum.kKilogramMassUnits, _
+												UnitsTypeEnum.kLbMassMassUnits), 2)
+	oStockNumb.Value = oDef.Document.PropertySets("Design Tracking Properties") _
+												("Stock Number").Value
+	
+	
+	Dim familyId As Inventor.Property = oCCPropSet.Item("FamilyId")
+	Dim MemberId As String = oCCPropSet.Item("MemberId").Value
+	Dim oFamily As ContentFamily
+	oFamily = oContentCenter.GetContentObject("v3#" & familyId.Value & "#")
+	Dim oContentNode As ContentTreeViewNode = oContentCenter.TreeViewTopNode
+	Dim oListBeam As UserParameter
+	Dim oRow As ContentTableRow = oFamily.TableRows.Item(MemberId)
+	Dim oList(oFamily.TableRows.Count-1) As String
+	For i As Integer = 0 To oFamily.TableRows.Count - 1
+		oList(i) = oFamily.TableRows(i + 1).Item(1).Value
+	Next i
+	Dim oColumn As ContentTableColumn = oFamily.TableColumns("STOCKNUMBER")
+	Try 
+		oListBeam = oUsParams("StockNumbBeamList")
+		oListBeam.Value = ""
+		oListBeam.ExpressionList.ClearAll()
+	Catch
+		oListBeam = oUsParams.AddByValue("StockNumbBeamList", "", _
+										UnitsTypeEnum.kTextUnits)
+	End Try	
+	MultiValue.List("StockNumbBeamList") = oList
+'	oListBeam.ExpressionList.SetExpressionList(oList)
+End Sub
