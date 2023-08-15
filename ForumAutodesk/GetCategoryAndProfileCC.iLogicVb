@@ -1,0 +1,23 @@
+﻿AddReference "System.xml.dll"
+Sub Main
+	Dim doc As Document = ThisDoc.Document
+	Call IsIBeam(doc)
+End Sub
+
+Public Function IsIBeam(doc As Document) As Boolean
+	Try
+		Dim categoriesXml = doc.PropertySets("Design Tracking Properties")("Categories").Value
+		Dim xmlDoc As New System.Xml.XmlDocument
+		xmlDoc.LoadXml(categoriesXml)
+		Dim iNodeCetogory, iNodeProfile As System.Xml.XmlNode
+		iNodeCetogory = xmlDoc.DocumentElement.SelectSingleNode("//Category[@Mnemonic='GRDR']")
+'		MessageBox.Show(iBeamNodeGRDR.Attributes.Item(0).Value, iBeamNodeGRDR.Attributes.Item(0).Name)
+		For i As Integer = 0 To iNodeCetogory.ChildNodes.Count
+			If iNodeCetogory.ChildNodes(i).LocalName = "Category" Then iNodeProfile = iNodeCetogory.ChildNodes(i) : Exit For
+		Next i
+		Dim iBeamNode As System.Xml.XmlNode = xmlDoc.DocumentElement.SelectSingleNode("//Category[@Mnemonic='ISHP']")
+		Return iBeamNode IsNot Nothing
+	Catch
+		Return False
+	End Try
+End Function

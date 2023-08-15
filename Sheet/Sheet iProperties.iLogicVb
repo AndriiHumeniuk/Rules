@@ -1,6 +1,6 @@
 ﻿Dim oPartDoc As PartDocument = ThisDoc.Document
 Dim oDef As SheetMetalComponentDefinition = oPartDoc.ComponentDefinition
-If oPartDoc.FileSaveCounter <> 0 Then
+If oPartDoc.FileSaveCounter > 0 Then
 	Try
 		name = System.IO.Path.GetFileNameWithoutExtension(oPartDoc.FullDocumentName)
 	Catch
@@ -46,14 +46,21 @@ If oPartDoc.FileSaveCounter <> 0 Then
 		oSummary(“Title”).Value = name.Remove(0, name.IndexOf(" ") + 1)
 	End If
 	
-	Dim Area_Color As Double = iProperties.Area / 1000000
-	Dim dVolume As Double = iProperties.Volume
+	Dim Area_Color As Double
+	Dim dVolume As Double
+	For Each oBody As SurfaceBody In oDef.SurfaceBodies
+		For Each oFace As Face In oBody.Faces
+			Area_Color += oFace.Evaluator.Area
+		Next
+		dVolume += oBody.Volume(0.001)
+	Next
 	Dim Area_1 As Double = dVolume / PlateName_Thing
-	Try : oCustom("Area_Color").Value = Round(Area_Color, 3) : Catch : oCustom.Add(Round(Area_Color, 3), "Area_Color") : End Try
+	Try : oCustom("Area_Color").Value = Round(Area_Color / 10000, 3)
+	Catch : oCustom.Add(Round(Area_Color / 10000, 3), "Area_Color") : End Try
 	Try : oCustom("Mass_size").Value = Round((dVolume * dens) / 1000000, 2)
 	Catch : oCustom.Add(Round((dVolume * dens) / 1000000, 2), "Mass_size") : End Try
-	Try : oCustom("Main_size").Value = Round(Area_1/ 1000000, 3)
-	Catch : oCustom.Add(Round(Area_1/ 1000000, 3), "Main_size") : End Try
+	Try : oCustom("Main_size").Value = Round(Area_1/ 1000, 3)
+	Catch : oCustom.Add(Round(Area_1/ 1000, 3), "Main_size") : End Try
 	Try : oCustom("Stren_steel").Value = mat.Substring(0,mat.IndexOf(" ")) 'Клас міцності
 	Catch : oCustom.Add(mat.Substring(0,mat.IndexOf(" ")), "Stren_steel") : End Try
 	Try : oCustom("Stan_steel").Value = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала

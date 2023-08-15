@@ -1,117 +1,75 @@
-﻿Sub main()	
+﻿Sub main()
+	Dim oInvApp As Inventor.Application = ThisApplication
 	Dim oDoc As PartDocument = ThisDoc.Document	
-	Dim oSummary As PropertySet = oDoc.PropertySets("Inventor Summary Information")
+	Dim oRevNumb As Inventor.Property = oDoc.PropertySets("Inventor Summary Information")("Revision Number")
+	Dim Тема As String = oRevNumb.Value
 	Dim oProject As PropertySet = oDoc.PropertySets("Design Tracking Properties")
-	Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
-	Dim oFeat As PartFeature
+	Dim oWebLink As Inventor.Property = oProject("Catalog Web Link")
+	Dim Веб_сайт As String = oWebLink.Value
 	Dim i As Integer = 0
 	
 	'[Select Тема_Вибір
-	Dim Тема As String = oSummary("Revision Number").Value
 	Dim List1 As New ArrayList
 	List1.AddRange({"Прут", "Квадрат", "Шестиграник", "Лист", "Лист ромб", "Лист сочевиця", "Лист ПВ", "Настил", "ДСП", "OSB/3", _
-	"Дошка", "Брус", "Двотавр", "Кутик", "Труба", "Швелер", "Перо шнека", "Дріт" , "С-подібний профіль"})
+					"Дошка", "Брус", "Двотавр", "Кутик", "Труба", "Швелер", "Перо шнека", "Дріт" , "С-подібний профіль"})
 	List1.Sort
-	If Тема <> "" Then
+	If Not String.IsNullOrEmpty(Тема) Then
 		i = List1.IndexOf(Тема)
 		If i < 0 Then i = 0
 	End If
 	Тема = InputListBox(oDoc.DisplayName, List1, List1(i), Title := "Тип елемента.", ListName := "Вибіріть заготовку:")
-	oSummary("Revision Number").Value = Тема']
+	oRevNumb.Value = Тема']
 	
-	Dim Веб_сайт As String = oProject("Catalog Web Link").Value
 	Dim List2 As New ArrayList
 	Dim j As Integer = 0
+	Select Case Тема
+	Case "Прут" : Веб_сайт = "ДСТУ 4738"
+	Case "Дріт" : Веб_сайт = "ДСТУ 3671-97"
+	Case "Квадрат" : Веб_сайт = "ДСТУ 4746"
+	Case "Шестиграник" : Веб_сайт = "ДСТУ EN 10061"
+	Case "Лист" : Веб_сайт = "ДСТУ 8540"
+	Case "Лист ромб" Or "Лист сочевиця" : Веб_сайт = "ДСТУ 8783"
+	Case "Лист ПВ" : Веб_сайт = "ГОСТ 8706-78"
+	Case "Настил" : Веб_сайт = "DIN 24537-1"
+	Case "ДСП" : Веб_сайт = "ДСТУ ГОСТ 10632"
+	Case "OSB/3" : Веб_сайт = "ДСТУ EN 300"
+	Case "Дошка" Or "Брус" : Веб_сайт = "ДСТУ ISO 738"
+	Case "Двотавр" : List2.AddRange({"DIN 1025-2", "DIN 1025-4", "DIN 1025-5", "EURONORM 53-62", "ГОСТ 26020-83", "ДСТУ 8768" })
+	Case "Кутик" : List2.AddRange({"ДСТУ 2251", "ДСТУ 2254-93", "ДСТУ 2255-93", "ДСТУ 8769", "ДСТУ EN 10056-1" })
+	Case "Труба" : List2.AddRange({"ДСТУ 8943", "ДСТУ Б В.2.6-8-95", "ДСТУ 8936", "ДСТУ 8940", "ДСТУ 8938", "ДСТУ 8939", "ДСТУ ISO 1127", _
+									"ДСТУ EN 10210-2", "ДСТУ EN 10216-1" })
+	Case "Швелер" : List2.AddRange({"DIN 1026-1", "DIN 1026-2", "П ДСТУ 3436-96", "У ДСТУ 3436-96" })
+	Case "Перо шнека" :	oRevNumb.Value = "Лист" : Веб_сайт = "ДСТУ 8540" : Call CreatSheetScrew(oInvApp, oDoc)
+	Case "С-подібний профіль" : Веб_сайт = "ДСТУ 8808" : Call ProfilThick(oDoc)
+	End Select
 	
-	If Тема = "Прут" Then
-		Веб_сайт = "ДСТУ 4738"
-	ElseIf Тема = "Дріт" Then
-		Веб_сайт = "ДСТУ 3671-97"
-	ElseIf Тема = "Квадрат" Then
-		Веб_сайт = "ДСТУ 4746"
-	ElseIf Тема = "Шестиграник" Then
-		Веб_сайт = "ДСТУ EN 10061"
-	ElseIf Тема = "Лист" Then
-		Веб_сайт = "ДСТУ 8540"
-	ElseIf Тема = "Лист ромб" Or Тема = "Лист сочевиця" Then
-		Веб_сайт = "ДСТУ 8783"
-	ElseIf Тема = "Лист ПВ" Then
-		Веб_сайт = "ГОСТ 8706-78"
-	ElseIf Тема = "Настил" Then
-		Веб_сайт = "DIN 24537-1"
-	ElseIf Тема = "ДСП" Then
-		Веб_сайт = "ДСТУ ГОСТ 10632"
-	ElseIf Тема = "OSB/3" Then
-		Веб_сайт = "ДСТУ EN 300"
-	ElseIf Тема = "Дошка" Then
-		Веб_сайт = "ДСТУ ISO 738"
-	ElseIf Тема = "Брус" Then
-		Веб_сайт = "ДСТУ ISO 738"
-	ElseIf Тема = "Двотавр" Then
-		'[Select "Вебсайт_двотавр"
-		List2.AddRange({"DIN 1025-2", "DIN 1025-4", "DIN 1025-5", "EURONORM 53-62", "ГОСТ 26020-83", "ДСТУ 8768" })
+	If Тема = "Двотавр" Or Тема = "Кутик" Or Тема = "Труба" Or Тема = "Швелер" Then
 		List2.Sort
-		If Веб_сайт <> "" Then
+		If Not String.IsNullOrEmpty(Веб_сайт) Then
 			j = List1.IndexOf(Веб_сайт)
 			If j < 0 Then j = 0
 		End If
-		Веб_сайт = InputListBox("Вибіріть стандарт двотавра.", List2, List2(j), Title := "Стандарт", ListName := oDoc.DisplayName)']
-	ElseIf Тема = "Кутик" Then
-		'[Select "Вебсайт_кутик"
-		List2.AddRange({"ДСТУ 2251", "ДСТУ 2254-93", "ДСТУ 2255-93", "ДСТУ 8769", "ДСТУ EN 10056-1" })
-		List2.Sort
-		If Веб_сайт <> "" Then
-			j = List1.IndexOf(Веб_сайт)
-			If j < 0 Then j = 0
-		End If
-		Веб_сайт = InputListBox("Вибіріть стандарт кутика.", List2, List2(j), Title := "Стандарт", ListName := oDoc.DisplayName)']
-		ProfilThick(oDoc)
-	ElseIf Тема = "Труба" Then
-		'[Select "Вебсайт_труба"
-		List2.AddRange({"ДСТУ 8943", "ДСТУ Б В.2.6-8-95", "ДСТУ 8936", "ДСТУ 8940", "ДСТУ 8938", "ДСТУ 8939", "ДСТУ ISO 1127", _
-		"ДСТУ EN 10210-2", "ДСТУ EN 10216-1" })
-		List2.Sort
-		If Веб_сайт <> "" Then
-			j = List1.IndexOf(Веб_сайт)
-			If j < 0 Then j = 0
-		End If
-		Веб_сайт = InputListBox("Вибіріть стандарт труби.", List2, List2(j), Title := "Стандарт", ListName := oDoc.DisplayName)']
-		ProfilThick(oDoc)
-	ElseIf Тема = "Швелер" Then
-		'[Select "Вебсайт_швелер"
-		List2.AddRange({"DIN 1026-1", "DIN 1026-2", "П ДСТУ 3436-96", "У ДСТУ 3436-96" })
-		List2.Sort
-		If Веб_сайт <> "" Then
-			j = List1.IndexOf(Веб_сайт)
-			If j < 0 Then j = 0
-		End If
-		Веб_сайт = InputListBox("Вибіріть стандарт швелера.", List2, List2(j), Title := "Стандарт", ListName := oDoc.DisplayName)
+		Веб_сайт = InputListBox("Вибіріть стандарт: " & Тема, List2, List2(j), Title := "Стандарт", ListName := oDoc.DisplayName)
 		If Веб_сайт = "П ДСТУ 3436-96" Then
 			Веб_сайт = "ДСТУ 3436-96"
 			oProject("Stock Number").Value = "П"
 		ElseIf Веб_сайт = "У ДСТУ 3436-96" Then
 			Веб_сайт = "ДСТУ 3436-96"
 			oProject("Stock Number").Value = "У"
-		End If']
-	ElseIf Тема = "Перо шнека" Then
-		oSummary("Revision Number").Value = "Лист"
-		Веб_сайт = "ДСТУ 8540"
-		CreatSheetScrew(oDoc)
-	ElseIf Тема = "С-подібний профіль" Then
-		Веб_сайт = "ДСТУ 8808"
-		ProfilThick(oDoc)
+		End If
 	End If
 	
 	If Веб_сайт = "Прут" Or Веб_сайт = "Квадрат" Or Веб_сайт = "Шестиграник" Or Тема = "Труба" Then
+		Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
 		If HasSweep(oDef) Then
-			oFeat = FindFeatures(oDef)
+			Dim oFeat As PartFeature = FindFeatures(oDef)
 			If Not IsNothing(oFeat) Then 
-				FindSizeProfil(oFeat, Веб_сайт)
+				FindSizeProfil(oInvApp, oFeat, Веб_сайт)
 			End If
 		End If
 	End If
 	
-	oProject("Catalog Web Link").Value = Веб_сайт
+	oWebLink.Value = Веб_сайт
 		
 	iLogicVb.RunRule("2_Габарит деталі")
 	
@@ -131,51 +89,46 @@ Private Function HasSweep(oDef As PartComponentDefinition) As Boolean
 	Return False
 End Function
 
-Private Function FindFeatures(oDef As PartComponentDefinition)
+Private Function FindFeatures(oDef As PartComponentDefinition) As PartFeature
 	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
-	If oDriveParts.Count >= 1 Then
-		Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
-		Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
-		Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
-		Dim oDerBodyName As String = oDrivePart.SolidBodies.Item(1).Name
-		Dim oBodyName As String = oDerBodyName.Substring(0, oDerBodyName.IndexOf("::"))
-		Dim oGroundPart As PartDocument = ThisApplication.Documents.Open(oDerPart.FullFileName, False)
-		Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
-		For Each oBody As SurfaceBody In oGroundDef.SurfaceBodies
-			If oBody.Name = oBodyName Then
-				Dim oFeat As PartFeature = oGroundDef.Features(oBody.CreatedByFeature.Name)
-				If oFeat.Type = ObjectTypeEnum.kSweepFeatureObject Then
-					Return oFeat
-				End If
-				Exit For
+	If oDriveParts.Count = 0 Then Return Nothing
+	Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
+	Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+	Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+	oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
+	Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
+	For Each oBody As SurfaceBody In oGroundDef.SurfaceBodies
+		If oBody.Name = oBodyName Then
+			Dim oFeat As PartFeature = oGroundDef.Features(oBody.CreatedByFeature.Name)
+			If oFeat.Type = ObjectTypeEnum.kSweepFeatureObject Then
+				Return oFeat
 			End If
-		Next
-		oGroundPart.Close
-	End If
+			Exit For
+		End If
+	Next
 	Return Nothing
 End Function
 
-Private Function FindSizeProfil(oSweep As SweepFeature, Веб_сайт As String)
-	Dim oDoc As PartDocument = ThisDoc.Document
+Private Function FindSizeProfil(oInvApp As Inventor.Application, oSweep As SweepFeature, Веб_сайт As String)
+	Dim oDef As PartComponentDefinition = oSweep.Parent
 	Dim oSketch As PlanarSketch = oSweep.Profile.Parent
-	Dim oSketchName As String = oSketch.Name
-	Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
 	Dim oParams As Parameters = oDef.Parameters
 	Dim listParam As New List(Of String)	
 	Dim oDimensNameH, oDimensNameW As String
-	If oSketch.HasReferenceComponent = True Then
+	If oSketch.HasReferenceComponent Then
 		Dim oRefDoc As PartDocument = oSketch.ReferenceComponent.ReferencedDocumentDescriptor.ReferencedDocument
 		oRefDef = oRefDoc.ComponentDefinition
-		oSketch = oRefDef.Sketches(oSketchName)
+		oSketch = oRefDef.Sketches(oSketch.Name)
 		Dim oDerParam As DerivedParameterTables = oParams.DerivedParameterTables
 		Dim oDerParTab As DerivedParameterTable
-		Dim oParamsToLink As ObjectCollection = ThisApplication.TransientObjects.CreateObjectCollection
+		Dim oParamsToLink As ObjectCollection = oInvApp.TransientObjects.CreateObjectCollection
 		If oSketch.DimensionConstraints.Count = 1 Then
 			oDimensNameH = oSketch.DimensionConstraints.Item(1).Parameter.Name
 			oParamsToLink.Add(oRefDef.Parameters.Item(oDimensNameH))
 		Else
 			For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
-				listParam.Add(oDimCon.Parameter.Name & "(" & oDimCon.Parameter.Expression & ") = " & oDimCon.Parameter.Value * 10 & " " & oDimCon.Parameter.Units)
+				Dim oParam As Inventor.Parameter
+				listParam.Add(oParam.Name & "(" & oParam.Expression & ") = " & oParam.Value * 10 & " " & oParam.Units)
 			Next
 			If Веб_сайт = "ДСТУ 4738" Or Веб_сайт = "ДСТУ 4746" Or Веб_сайт = "ДСТУ EN 10061" Or Веб_сайт = "ДСТУ 3671-97" Then
 				oDimensNameH = InputListBox(oBodyName, listParam, listParam(1), Title := "Параметри:", ListName := "Виберіть січення:")
@@ -257,8 +210,6 @@ End Function
 
 Private Sub ProfilThick(oDoc As PartDocument)
 	Dim tName As String
-	Dim ListParam As New ArrayList
-	Dim ListName As String = "ListParameters"
 	Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
 	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
 	Dim oUPs As UserParameters = oDef.Parameters.UserParameters
@@ -266,16 +217,11 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
 		Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
 		Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
-		Dim oDerBodyName As String = oDrivePart.SolidBodies.Item(1).Name
-		Dim oDPEnts As DerivedPartEntities = oDerPartDef.Parameters
-		Dim oDPEnt As DerivedPartEntity
-		Dim oBodyName As String = oDerBodyName.Substring(0, oDerBodyName.IndexOf("::"))
-		Dim oGroundPart As PartDocument = ThisApplication.Documents.Open(oDerPart.FullFileName, False)
-		Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
-		Dim oBodies As SurfaceBodies = oGroundDef.SurfaceBodies
+		Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+		oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
+		Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
 		Dim oFeatName As String
-		Dim oParam As Parameter
-		For Each oBody As SurfaceBody In oBodies
+		For Each oBody As SurfaceBody In oGroundDef.SurfaceBodies
 			If oBody.Name = oBodyName Then
 				oFeatName = oBody.CreatedByFeature.Name
 				Exit For
@@ -285,15 +231,9 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		If oFeat.Type = kThickenFeatureObject Then '83955200 (Товщина)
 			tName = oFeat.Parameters.Item(1).Name
 		Else
-			Dim oSketch As PlanarSketch = oFeat.Profile.Parent
-			For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
-				ListParam.Add(oDimCon.Parameter.Name & "(" & oDimCon.Parameter.Expression & ") = " & oDimCon.Parameter.Value * 10 & " " & oDimCon.Parameter.Units)
-			Next
-			oGroundPart.Close
-			tName = InputListBox(oBodyName, ListParam, ListName(0), Title := "Параметри.", ListName := "Вибиріть товщину:")
-			tName = tName.Substring(0, tName.IndexOf("("))
+			Call CreateListParams(oFeat.Profile.Parent)
 		End If
-		For Each oDPEnt In oDPEnts
+		For Each oDPEnt As DerivedPartEntity In oDerPartDef.Parameters
 			If oDPEnt.ReferencedEntity.Name = tName Then
 				oDPEnt.IncludeEntity = True
 				Exit For
@@ -302,28 +242,33 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		oDrivePart.Definition = oDerPartDef
 	Else
 		Dim oFeat As PartFeature = oDef.Features(oDef.SurfaceBodies.Item(1).CreatedByFeature.Name)
-		Dim oSketch As PlanarSketch = oFeat.Profile.Parent
-		For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
-			ListParam.Add(oDimCon.Parameter.Name & "(" & oDimCon.Parameter.Expression & ") = " & oDimCon.Parameter.Value * 10 & " " & oDimCon.Parameter.Units)
-		Next
-		tName = InputListBox(oDoc.DisplayName, ListParam, ListName(0), Title := "Параметри.", ListName := "Вибиріть товщину:")
-		tName = tName.Substring(0, tName.IndexOf("("))
+		Call CreateListParams(oFeat.Profile.Parent)
 	End If
 	If String.IsNullOrEmpty(tName) Then Exit Sub
-	Try : oUPs("Толщина").Expression = tName : Catch : oUPs.AddByExpression("Толщина", tName, kMillimeterLengthUnits) : End Try
+	Try : oUPs("Толщина").Expression = tName : Catch
+	oUPs.AddByExpression("Толщина", tName, kMillimeterLengthUnits) : End Try
 End Sub
 
-Private Sub CreatSheetScrew(oDoc As PartDocument)
-	Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+Private Function CreateListParams(ByVal oSketch As PlanarSketch) As String
+	Dim tName As String
+	Dim ListParam As New ArrayList
+	Dim ListName As String = "ListParameters"
+	For Each oDimCon As DimensionConstraint In oSketch.DimensionConstraints
+		Dim oParam As Inventor.Parameter = oDimCon.Parameter
+		ListParam.Add(oParam.Name & "(" & oParam.Expression & ") = " & oParam.Value * 10 & " " & oParam.Units)
+	Next
+	tName = InputListBox(oBodyName, ListParam, ListName(0), Title := "Параметри.", ListName := "Вибиріть товщину:")
+	Return tName.Substring(0, tName.IndexOf("("))
+End Function
+
+Private Sub CreatSheetScrew(oInvApp As Inventor.Application, oDoc As PartDocument)
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
 	Dim oUOM As UnitsOfMeasure = oDoc.UnitsOfMeasure
 	Dim oDocDef As PartComponentDefinition = oDoc.ComponentDefinition
-	Dim oDriveParts As DerivedPartComponents = oDocDef.ReferenceComponents.DerivedPartComponents
-	Dim oParams As Parameters = oDocDef.Parameters
-	Dim oUserParams As UserParameters = oParams.UserParameters
-	Dim oState As ModelStates = oDocDef.ModelStates
-	Dim oEdge As Edge
-	oState.Item(1).Activate()
-	oState.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
+	Dim oUserParams As UserParameters = oDocDef.Parameters.UserParameters
+	Dim oStates As ModelStates = oDocDef.ModelStates
+	oStates.Item(1).Activate()
+	oStates.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
 	
 	Dim oArray, oEdgeLengths, oLengths As New List(Of Double)
 	Dim oMin, oMax, L1Size, L2Size, rSize As Double
@@ -335,7 +280,7 @@ Private Sub CreatSheetScrew(oDoc As PartDocument)
 	Next
 	Dim iFace As Integer = oArray.FindIndex(0, oArray.Count, Function(t) t = oArray.Max) + 1
 		
-	For Each oEdge In oBody.Faces.Item(iFace).Edges
+	For Each oEdge As Edge In oBody.Faces.Item(iFace).Edges
 		oEdge.Evaluator.GetParamExtents(oMin, oMax)
 		oEdge.Evaluator.GetLengthAtParam(oMin, oMax, oLength)
 		If Not oEdgeLengths.Contains(Round(oLength, 6)) Then
@@ -353,63 +298,38 @@ Private Sub CreatSheetScrew(oDoc As PartDocument)
 	Dim L1_name As String = "L1_size_screw"
 	Dim L2_name As String = "L2_size_screw"
 	Dim r_name As String = "r_size_screw"
-	
-	Dim creatSize As Double
-	
-	For Each oUseParam As UserParameter In oUserParams
-		If oUseParam.Name.Contains(L1_name) Then
-			oUseParam.Value = L1Size
-			creatSize = True
-		ElseIf oUseParam.Name.Contains(L2_name) Then
-			oUseParam.Value = L2Size
-		ElseIf oUseParam.Name.Contains(r_name) Then
-			oUseParam.Value = rSize
-		End If
-	Next
-	
-	If creatSize = False Then
-		oUserParams.AddByValue(L1_name, L1Size, oUOM.LengthUnits)
-		oUserParams.AddByValue(L2_name, L2Size, oUOM.LengthUnits)
-		oUserParams.AddByValue(r_name, rSize, oUOM.LengthUnits)
-	End If
+		
+	Try : oUserParams(L1_name).Value = L1Size
+	Catch : oUserParams.AddByValue(L1_name, L1Size, oUOM.LengthUnits) : End Try
+	Try : oUserParams(L2_name).Value = L2Size
+	Catch : oUserParams.AddByValue(L2_name, L2Size, oUOM.LengthUnits) : End Try
+	Try : oUserParams(r_name).Value = rSize
+	Catch : oUserParams.AddByValue(r_name, rSize, oUOM.LengthUnits) : End Try
 	
 	Dim oModName As String = "Розгортка пера шнека"
 	
-	Dim createState As Boolean
-	
-	For Each oMod As ModelState In oState
-		If oMod.Name.Contains(oModName) Then
-			createState = True
-		End If
-	Next
-	
-	oLengths.Clear
-	
-	For Each oEdge In oBody.Edges
-		oEdge.Evaluator.GetParamExtents(oMin, oMax)
-		oEdge.Evaluator.GetLengthAtParam(oMin, oMax, oLength)
-		oLengths.Add(Round(oLength, 2))
-	Next
-
-	If createState = False Then
+	If IsNothing(oStates(oModName)) Then	
+		oLengths.Clear
+		
+		For Each oEdge As Edge In oBody.Edges
+			oEdge.Evaluator.GetParamExtents(oMin, oMax)
+			oEdge.Evaluator.GetLengthAtParam(oMin, oMax, oLength)
+			oLengths.Add(Round(oLength, 2))
+		Next
+		
 		Dim oSketName As String = "ЕскізПераШнека"
 		Dim nameThich As String
 		Dim oFeat As PartFeature
+		Dim oDriveParts As DerivedPartComponents = oDocDef.ReferenceComponents.DerivedPartComponents
 		If oDriveParts.Count >= 1 Then
 			Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
 			If Not IsNothing(oDrivePart.SolidBodies) Then
 				Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
 				Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
-				Dim oDPEnts As DerivedPartEntities = oDerPartDef.Parameters
-				Dim oDPEnt As DerivedPartEntity
-				Dim oBodyName As String = oBody.Name
-				Dim oGroundPart As PartDocument = ThisApplication.Documents.Open(oDerPart.FullFileName, False)
-				Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
-				Dim oBodies As SurfaceBodies = oGroundDef.SurfaceBodies
+				Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
 				Dim oFeatName As String
-				Dim oParam As Parameter
-				For Each oBodyGround As SurfaceBody In oBodies
-					If oBodyGround.Name = oBodyName Then
+				For Each oBodyGround As SurfaceBody In oGroundDef.SurfaceBodies
+					If oBodyGround.Name = oBody.Name Then
 						oFeatName = oBodyGround.CreatedByFeature.Name
 						Exit For
 					End If
@@ -429,9 +349,8 @@ Private Sub CreatSheetScrew(oDoc As PartDocument)
 							End If
 						Next
 					End If
-				End If
-				oGroundPart.Close	
-				For Each oDPEnt In oDPEnts
+				End If	
+				For Each oDPEnt As DerivedPartEntity In oDerPartDef.Parameters
 					If oDPEnt.ReferencedEntity.Name = nameThich Then
 						oDPEnt.IncludeEntity = True
 						Exit For
@@ -465,8 +384,8 @@ Private Sub CreatSheetScrew(oDoc As PartDocument)
 			End If
 		End If
 		
-		oState.Add(oModName)
-		oState.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+		oStates.Add(oModName)
+		oStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
 		oDocDef.Features(oBody.CreatedByFeature.Name).Suppressed = True
 		
 		Dim oSkets As PlanarSketches = oDocDef.Sketches
@@ -510,15 +429,15 @@ Private Sub CreatSheetScrew(oDoc As PartDocument)
 		Dim oExtrudeDef As ExtrudeDefinition
 		oExtrudeDef = oDocDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(oProfile, PartFeatureOperationEnum.kNewBodyOperation)
 		
-		If nameThich Is Nothing Then nameThich = oUOM.ConvertUnits(oLengths.Min(), "cm", oUOM.LengthUnits)
+		If nameThich Is Nothing Then nameThich = oUOM.ConvertUnits(oLengths.Min(), UnitsTypeEnum.kCentimeterLengthUnits, oUOM.LengthUnits)
 		oExtrudeDef.SetDistanceExtent(nameThich, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
 		
 		Dim oExtrude As ExtrudeFeature
 		oExtrude = oDocDef.Features.ExtrudeFeatures.Add(oExtrudeDef)
 		oExtrude.Name = "ВидавленняПераШнека"
 		
-		oState.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
-		oState.Item(1).Activate()
+		oStates.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
+		oStates.Item(1).Activate()
 	End If
 
 End Sub

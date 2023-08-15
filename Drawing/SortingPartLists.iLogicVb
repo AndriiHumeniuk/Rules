@@ -1,6 +1,7 @@
-﻿Dim oDoc As Document = ThisDoc.Document
-Dim oTM As TransactionManager = ThisApplication.TransactionManager
-Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+﻿Dim oApp As Inventor.Application = ThisApplication
+Dim oDoc As Document = ThisDoc.Document
+Dim oTM As TransactionManager = oApp.TransactionManager
+Dim oTG As TransientGeometry = oApp.TransientGeometry
 If TypeOf oDoc Is DrawingDocument Then
 	Dim oDrawDoc As DrawingDocument = oDoc
 	Dim activPosY AS Double

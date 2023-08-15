@@ -23,7 +23,7 @@
 				If FindParts(oOcc) Then
 					Call oSSet.Select(oOcc)
 					Call oZoomer.Item("AppZoomSelectCmd").Execute()
-					Call CreatAtributs(oOcc, oSet)
+					Call CreatAtributs(oInvApp, oOcc, oSet)
 					Call oSSet.Clear()
 				End If
 			End If
@@ -35,7 +35,7 @@
 		Dim oOcc As ComponentOccurrence = oInvApp.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
 																	"Оберіть компонент...")
 		If oOcc Is Nothing Then Exit Sub
-		Call CreatAtributs(oOcc, oSet)
+		Call CreatAtributs(oInvApp, oOcc, oSet)
 	End If
 End Sub
 
@@ -77,7 +77,7 @@ Public Function FindParts(oOcc As ComponentOccurrence) As Boolean
 	Return False
 End Function
 
-Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
+Public Sub CreatAtributs(oInvApp As Inventor.Application, oOcc As ComponentOccurrence, oSet As HighlightSet)
 	oSet.AddItem(oOcc)
 	Dim oDocPart As PartDocument = oOcc.Definition.Document
 	If Not System.IO.File.Exists(oDocPart.FullFileName) Then oDocPart.Save()
@@ -91,7 +91,7 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 	ElseIf oOcc.Definition.Type = kSheetMetalComponentDefinitionObject Then
 		'[Big CODE
 		Dim sheetDef As SheetMetalComponentDefinition = oDocPart.ComponentDefinition
-		Dim tName As String
+		Dim tName, oFeatName As String
 		Dim ListParam As New ArrayList
 		Dim ListName As String = "ListParameters"
 		Dim oDriveParts As DerivedPartComponents = sheetDef.ReferenceComponents.DerivedPartComponents
@@ -99,15 +99,10 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 			Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
 			Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
 			Dim oGroundPart As PartDocument = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
-			Dim oDerBodyName As String = oDrivePart.SolidBodies.Item(1).Name
-			Dim oDPEnts As DerivedPartEntities = oDerPartDef.Parameters
-			Dim oDPEnt As DerivedPartEntity
-			Dim oBodyName As String = oDerBodyName.Substring(0,oDerBodyName.IndexOf("::"))
+			Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+			oBodyName = oBodyName.Substring(0,oBodyName.IndexOf("::"))
 			Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
-			Dim oBodies As SurfaceBodies = oGroundDef.SurfaceBodies
-			Dim oFeatName As String
-			Dim oParam As Parameter
-			For Each oBody As SurfaceBody In oBodies
+			For Each oBody As SurfaceBody In oGroundDef.SurfaceBodies
 				If oBody.Name = oBodyName Then
 					oFeatName = oBody.CreatedByFeature.Name
 					Exit For
@@ -141,7 +136,7 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 					IndexFace = IndexFace +1
 				Next
 				Dim oResule As New List(Of Double)
-				Dim oMTs As MeasureTools = ThisApplication.MeasureTools
+				Dim oMTs As MeasureTools = oInvApp.MeasureTools
 				If ListFace.Count >= 2 And ListFace.Count < 4 Then
 					oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
 				ElseIf ListFace.Count >= 4 Then
@@ -190,7 +185,7 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 								"Тип тіла: " & oFeat.Type.ToString(), "Помилка!!!")
 				GoTo ExitRule
 			End If
-			For Each oDPEnt In oDPEnts
+			For Each oDPEnt As DerivedPartEntity In oDerPartDef.Parameters
 				If oDPEnt.ReferencedEntity.Name = tName Then
 					oDPEnt.IncludeEntity = True
 					Exit For
@@ -199,7 +194,7 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 			oDrivePart.Definition = oDerPartDef
 			sheetDef.Thickness.Expression = tName
 		End If
-		ThisApplication.SilentOperation = True
+		oInvApp.SilentOperation = True
 		If sheetDef.HasFlatPattern = False Then
 			sheetDef.Unfold()
 			sheetDef.FlatPattern.ExitEdit()
@@ -208,11 +203,10 @@ Public Sub CreatAtributs(oOcc As ComponentOccurrence, oSet As HighlightSet)
 			sheetDef.Unfold()
 			sheetDef.FlatPattern.ExitEdit()
 		End If
+		oInvApp.SilentOperation = False
 		ExitRule :
-		ThisApplication.SilentOperation = False
-		']
 		iLogicVb.RunRule(oOcc.Name, "Sheet iProperties")
-	End If
+	End If']
 	oSet.Clear()
 End Sub
 
