@@ -1,0 +1,22 @@
+﻿Sub Main()
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	If Not TypeOf oDoc Is DrawingDocument Then Exit Sub
+	Dim oDDoc As DrawingDocument = oDoc
+	If oDDoc.ReferencedDocumentDescriptors.Count = 0 Then Exit Sub
+	Dim oFD As FileDescriptor = oDDoc.ReferencedDocumentDescriptors(1).ReferencedFileDescriptor
+	Dim Dialog As New System.Windows.Forms.FolderBrowserDialog
+	Dialog.SelectedPath = RutaExport
+	Dialog.ShowNewFolderButton = True
+	Dialog.Description = "Select folder with parts..."
+	If System.Windows.Forms.DialogResult.OK <> Dialog.ShowDialog() Then Exit Sub
+	Dim sListParts() As String = IO.Directory.GetFiles(Dialog.SelectedPath & "\", "*.ipt", IO.SearchOption.TopDirectoryOnly)
+	If sListParts.Length = 0 Then Exit Sub
+	Dim sPath, sName As String
+	For i As Integer = 0 To sListParts.Length - 1
+		oFD.ReplaceReference(sListParts(i))		
+		oDoc.Update()
+		sPath = IO.Path.GetDirectoryName(sListParts(i))
+		sName = IO.Path.GetFileNameWithoutExtension(sListParts(i))
+		oDoc.SaveAs(sPath & "\" & sName & ".idw", True)
+	Next i
+End Sub

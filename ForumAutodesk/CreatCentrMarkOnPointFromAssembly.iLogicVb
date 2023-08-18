@@ -1,0 +1,56 @@
+﻿Sub main
+	Dim oApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = ThisDoc.Document
+	If Not TypeOf oDoc Is DrawingDocument Then Exit Sub
+	Dim oDDoc As DrawingDocument = oDoc
+	Dim oView As DrawingView
+	oView = oApp.CommandManager.Pick(SelectionFilterEnum.kDrawingViewFilter, "Select view...")
+	oDoc = oView.ReferencedDocumentDescriptor.ReferencedDocument
+	If Not TypeOf oDoc Is AssemblyDocument Then Exit Sub
+	Dim oAsmDoc As AssemblyDocument = oDoc
+	Dim oAsmDef As AssemblyComponentDefinition = oAsmDoc.ComponentDefinition
+	Dim oPoints As WorkPoints = oAsmDef.WorkPoints
+	Dim sPlatesName() As String = {"MAKEUP PLANE", "PLANE ELEVATION", "PLANE IN OUT" }
+	Dim oPlates(sPlatesName.Length-1) As WorkPlaneProxy
+	oPlates = GetPatesFromComponent(oAsmDoc.ComponentDefinition.Occurrences, sPlatesName)
+	Dim oOriginPnt(sPlatesName.Length-1) As Inventor.Point
+	Dim oXaxis(sPlatesName.Length-1) As Inventor.UnitVector
+	Dim oYaxis(sPlatesName.Length - 1) As Inventor.UnitVector
+	Call oPlates(0).GetPosition(oOriginPnt(0), oXaxis(0), oYaxis(0))
+	Call oPlates(1).GetPosition(oOriginPnt(1), oXaxis(1), oYaxis(1))
+	Call oPlates(2).GetPosition(oOriginPnt(2), oXaxis(2), oYaxis(2))
+	Dim pt(sPlatesName.Length - 1) As Double
+	pt(0) = oOriginPnt(0).Y : pt(1) = oOriginPnt(1).X : pt(2) = oOriginPnt(2).Z
+	Dim newPoint As Inventor.Point = oApp.TransientGeometry.CreatePoint(pt(1), pt(0), pt(2))
+	Dim sNamePoint As String = "NewPoint"
+	Dim oPoint As Inventor.WorkPoint
+	Try 
+		oPoint = oPoints(sNamePoint)
+		oPoint.SetFixed(newPoint)
+	Catch 
+		oPoint = oPoints.AddFixed(newPoint)
+		oPoint.Name = "NewPoint"
+	End Try
+	Dim oMark As Centermark = oView.Parent.Centermarks.AddByWorkFeature(oPoint, oView)
+	oDDoc.Update()
+End Sub
+
+Private Function GetPatesFromComponent(ByVal oOccs As ComponentOccurrences,
+										ByVal sPlatesName() As String) As WorkPlaneProxy()
+	Dim oPlates(sPlatesName.Length - 1) As WorkPlaneProxy
+	Dim iQTy As Integer = 0
+	For Each oOcc As ComponentOccurrence In oOccs
+		For i As Integer = 1 To oOcc.Definition.WorkPlanes.Count
+			If sPlatesName.Contains(oOcc.Definition.WorkPlanes(i).Name) Then
+				Dim oPlaneProx As WorkPlaneProxy = Nothing
+				Call oOcc.CreateGeometryProxy(oOcc.Definition.WorkPlanes(i), oPlaneProx)
+				oPlates(iQTy) = oPlaneProx
+				iQTy += 1
+			End If
+		Next i
+		Dim oSubOccs As ComponentOccurrencesEnumerator
+'		Try : oSubOccs = oOcc.SubOccurrences : Catch : Continue For : End Try
+'		oPlates = GetPatesFromComponent(oSubOccs, sPlatesName)
+	Next
+	Return oPlates
+End Function

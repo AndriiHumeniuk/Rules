@@ -1,0 +1,91 @@
+﻿Sub main
+	'Setup
+	Dim asm As AssemblyDocument = ThisDoc.Document
+	Dim modelBomView As BOMView = asm.ComponentDefinition.BOM.BOMViews(1)
+	Dim excelFileName As String = System.IO.Path.ChangeExtension(asm.FullFileName, ".xlsx")
+
+	'Exported data
+	rows = New List(Of List(Of Object))
+	rows.Add(GetBomHeader())
+	IterateBomRows(modelBomView.BOMRows, 0)
+	
+	'Save data to Excel
+	WriteDataToExcel(excelFileName)
+
+End Sub
+
+Private rows As List(Of List(Of Object))
+
+Sub IterateBomRows(oBomRows As BOMRowsEnumerator, level As Integer)
+	For Each oBomRow As BOMRow In oBomRows
+		rows.Add(GetBomRowData(oBomRow, level))
+
+		'Recursive call
+		If Not oBomRow.ChildRows Is Nothing Then IterateBomRows(oBomRow.ChildRows, level + 1)
+	Next
+End Sub
+
+Function GetBomHeader() As List(Of Object)
+	Dim header As New List(Of Object)
+	header.Add("Level")
+	header.Add("ItemNumber")
+	header.Add("ItemQuantity")
+	header.Add("TotalQuantity")
+	header.Add("BOMStructure")
+	header.Add("Part Number")
+	header.Add("Title")
+
+	Return header
+End Function
+
+Function GetBomRowData(oBomRow As BOMRow, level As Integer) As List(Of Object)
+	Dim xlsRow As New List(Of Object)
+	Dim compDef As ComponentDefinition = oBomRow.ComponentDefinitions(1)
+	Dim propSets As PropertySets = compDef.Document.PropertySets
+
+	xlsRow.Add(level)
+	
+	xlsRow.Add(oBomRow.ItemNumber)
+	xlsRow.Add(oBomRow.ItemQuantity)
+	xlsRow.Add(oBomRow.TotalQuantity)
+
+	xlsRow.Add(System.Enum.GetName(GetType(BOMStructureEnum), compDef.BOMStructure))
+
+	xlsRow.Add(propSets("{32853F0F-3444-11D1-9E93-0060B03C1CA6}")("Part Number").Value)
+	xlsRow.Add(propSets("{F29F85E0-4FF9-1068-AB91-08002B27B3D9}")("Title").Value)
+
+	Return xlsRow
+End Function
+
+Sub WriteDataToExcel(xlsFileName As String)
+	StartExcel()
+	
+	Dim workBook = GoExcel.Application.Workbooks.Add()
+
+	Dim rowsCount As Integer = rows.Count
+	Dim columnsCount As Integer = rows(0).Count
+
+	Dim data(rowsCount, columnsCount) As Object
+	For c As Integer = 0 To columnsCount - 1
+		For r As Integer = 0 To rowsCount - 1
+			data(r, c) = rows(r)(c)
+		Next
+	Next
+
+	Dim columnName As String = Char.ConvertFromUtf32(columnsCount + 64)
+
+	workBook.Worksheets(1).Range("A1:" & columnName & rowsCount).Value2 = data
+
+	workBook.SaveAs(xlsFileName)
+	workBook.Close()
+	
+	GoExcel.QuitApplication
+End Sub
+
+Sub StartExcel
+	'You need to enable COM engine for excel in iLogic settings
+	Try
+		GoExcel.Open("")
+	Catch
+	End Try
+End Sub

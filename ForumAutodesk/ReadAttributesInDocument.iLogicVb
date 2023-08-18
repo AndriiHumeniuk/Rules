@@ -1,0 +1,8 @@
+﻿Dim oDoc As Document = ThisDoc.Document
+Dim oAttSets As AttributeSets = oDoc.AttributeSets
+For i As Integer = 1 To oAttSets.Count
+	For k As Integer = 1 To oAttSets(i).Count
+		On Error Resume Next
+		MessageBox.Show(k & ") " & oAttSets(i)(k).Name & " - " & oAttSets(i)(k).Value, i & ") " & oAttSets(i).Name)
+	Next k
+Next i

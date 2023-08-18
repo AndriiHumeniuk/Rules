@@ -1,45 +1,50 @@
-﻿Sub main
-	Dim oDDoc As DrawingDocument = ThisApplication.ActiveDocument
-	Dim oCM As CommandManager = ThisApplication.CommandManager
+﻿Sub Main()
+	Dim oApp As Inventor.Application = ThisApplication
+	Dim oDDoc As DrawingDocument = oApp.ActiveDocument
+	Dim oCM As CommandManager = oApp.CommandManager
+	Dim oTG As TransientGeometry = oApp.TransientGeometry
 	Dim oCurve1, oCurve2 As DrawingCurveSegment
-	oCurve1 = oCM.Pick(SelectionFilterEnum.kDrawingCurveSegmentFilter, "Оберіть ребро виду...(Press ESC to cancel)")
+	oCurve1 = oCM.Pick(SelectionFilterEnum.kDrawingCurveSegmentFilter,
+						"Оберіть ребро виду...(Press ESC to cancel)")
 	If oCurve1 Is Nothing Then Exit Sub
 	Do
-		oCurve2 = oCM.Pick(SelectionFilterEnum.kDrawingCurveSegmentFilter, "Оберіть ребро орієнтування...(Press ESC to cancel)")
+		oCurve2 = oCM.Pick(SelectionFilterEnum.kDrawingCurveSegmentFilter,
+							"Оберіть ребро орієнтування...(Press ESC to cancel)")
 		If oCurve2 Is Nothing Then Exit Sub
 	Loop While oCurve1.Parent.Parent Is oCurve2.Parent.Parent
 	Dim lPosCurves As Long = GetPositionCurve(oCurve1, oCurve2)
 	If lPosCurves <> 0 Then
 		Dim dDistance As Double = GetMinimumDistance(oCurve1, oCurve2, lPosCurves)
-		Call SetPositionView(oCurve1.Parent.Parent, dDistance, lPosCurves)
+		Call SetPositionView(oCurve1.Parent.Parent, oTG, dDistance, lPosCurves)
 	Else
-		MessageBox.Show("Ребра не паралельні, або Ваш варінт не описаний в коді.", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		MessageBox.Show("Ребра не паралельні, або Ваш варінт не описаний в коді.",
+						"Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Error)
 	End If
 End Sub
 
-Private Function GetPositionCurve(ByVal oCurve1 As DrawingCurveSegment, ByVal oCurve2 As DrawingCurveSegment) As Long
-	Dim dCurve1StartX, dCurve1StartY, dCurve1EndX, dCurve1EndY, dCurve2StartX, dCurve2StartY, dCurve2EndX, dCurve2EndY As Double
+Private Function GetPositionCurve(ByVal oCurve1 As DrawingCurveSegment,
+									ByVal oCurve2 As DrawingCurveSegment) As Long
+	Dim dCurve1StartX, dCurve1StartY, dCurve1EndX, dCurve1EndY As Double
+	Dim dCurve2StartX, dCurve2StartY, dCurve2EndX, dCurve2EndY As Double
 	Dim oPoint1, oPoint2 As Point2d
-	If oCurve1.GeometryType = Curve2dTypeEnum.kLineSegmentCurve2d Then
+	Select Case oCurve1.GeometryType
+	Case kLineSegmentCurve2d
 		dCurve1StartX = Round(oCurve1.StartPoint.X, 5)
 		dCurve1StartY = Round(oCurve1.StartPoint.Y, 5)
 		dCurve1EndX = Round(oCurve1.EndPoint.X, 5)
 		dCurve1EndY = Round(oCurve1.EndPoint.Y, 5)
-	Else If oCurve1.GeometryType = Curve2dTypeEnum.kCircleCurve2d Then
-		oPoint1 = oCurve1.Geometry.Center
-	Else If oCurve1.GeometryType = Curve2dTypeEnum.kCircularArcCurve2d Then
-		oPoint1 = oCurve1.Geometry.Center
-	End If
-	If oCurve2.GeometryType = Curve2dTypeEnum.kLineSegmentCurve2d Then
+	Case kCircleCurve2d : oPoint1 = oCurve1.Geometry.Center
+	Case kCircularArcCurve2d : oPoint1 = oCurve1.Geometry.Center
+	End Select
+	Select Case oCurve2.GeometryType
+	Case kLineSegmentCurve2d
 		dCurve2StartX = Round(oCurve2.StartPoint.X, 5)
 		dCurve2StartY = Round(oCurve2.StartPoint.Y, 5)
 		dCurve2EndX = Round(oCurve2.EndPoint.X, 5)
 		dCurve2EndY = Round(oCurve2.EndPoint.Y, 5)
-	Else If oCurve2.GeometryType = Curve2dTypeEnum.kCircleCurve2d Then
-		oPoint2 = oCurve2.Geometry.Center
-	Else If oCurve2.GeometryType = Curve2dTypeEnum.kCircularArcCurve2d Then
-		oPoint2 = oCurve2.Geometry.Center
-	End If
+	Case kCircleCurve2d : oPoint2 = oCurve2.Geometry.Center
+	Case kCircularArcCurve2d : oPoint2 = oCurve2.Geometry.Center
+	End Select
 	If oCurve1.GeometryType = Curve2dTypeEnum.kLineSegmentCurve2d Then
 		If oCurve2.GeometryType = Curve2dTypeEnum.kLineSegmentCurve2d Then
 			If dCurve1StartX = dCurve1EndX And dCurve2StartX = dCurve2EndX Then 'Вертикальні
@@ -101,7 +106,8 @@ Private Function GetPositionCurve(ByVal oCurve1 As DrawingCurveSegment, ByVal oC
 				End If
 			End If
 			If bvResult = 0 Then
-				bvResult = MessageBox.Show("Оберіть 'Yes', якщо центрувати по вертикалі, та 'No', якщо центрувати по горизонталі.", _
+				bvResult = MessageBox.Show("Оберіть 'Yes', якщо центрувати по вертикалі," & _
+							" та 'No', якщо центрувати по горизонталі.", _
 							"Центровка.", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question)
 			End If
 			If bvResult = vbYes Then
@@ -122,7 +128,9 @@ Private Function GetPositionCurve(ByVal oCurve1 As DrawingCurveSegment, ByVal oC
 	Return 0 '0 - ребра не паралельні
 End Function
 
-Private Function GetMinimumDistance(ByVal oCurve1 As DrawingCurveSegment, ByVal oCurve2 As DrawingCurveSegment, ByVal lPosCurves As Long) As Double
+Private Function GetMinimumDistance(ByVal oCurve1 As DrawingCurveSegment,
+									ByVal oCurve2 As DrawingCurveSegment,
+									ByVal lPosCurves As Long) As Double
 	Select Case lPosCurves
 	Case 1, 2 : Return Math.Abs(oCurve1.StartPoint.Y - oCurve2.StartPoint.Y)
 	Case 3, 4 : Return Math.Abs(oCurve1.StartPoint.X - oCurve2.StartPoint.X)
@@ -136,8 +144,10 @@ Private Function GetMinimumDistance(ByVal oCurve1 As DrawingCurveSegment, ByVal 
 	Return 0
 End Function
 
-Private Function SetPositionView(ByVal oView As DrawingView, ByVal dDistance As Double, ByVal lPosCurves As Long)
-	Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+Private Function SetPositionView(ByVal oView As DrawingView,
+								ByVal oTG As TransientGeometry,
+								ByVal dDistance As Double,
+								ByVal lPosCurves As Long)
 	Select Case lPosCurves
 	Case 1, 5, 9, 13 : oView.Position = oTG.CreatePoint2d(oView.Position.X, oView.Position.Y - dDistance)
 	Case 2, 6, 10, 14 : oView.Position = oTG.CreatePoint2d(oView.Position.X, oView.Position.Y + dDistance)

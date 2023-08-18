@@ -1,5 +1,5 @@
 ﻿Sub main
-	Dim oInvApp As Inventor.Application
+	Dim oInvApp As Inventor.Application = ThisApplication
 	Dim oDoc As Document = ThisDoc.Document
 	If TypeOf oDoc Is DrawingDocument Then
 		Dim oDraw As DrawingDocument = oDoc
@@ -106,8 +106,10 @@
 								sRotate = ChrW(&H21B7)
 							End If
 						End If
-				    	oView.Label.FormattedText = oView.Label.FormattedText & _
-						" <StyleOverride Font='@Arial Unicode MS' FontSize='0,8'>" & sRotate & " </StyleOverride>" & sDeg
+						Try
+					    	oView.Label.FormattedText = oView.Label.FormattedText & _
+							" <StyleOverride Font='@Arial Unicode MS' FontSize='0,8'>" & sRotate & " </StyleOverride>" & sDeg
+						Catch : End Try
 					End If
 		        End If
 		    Next
