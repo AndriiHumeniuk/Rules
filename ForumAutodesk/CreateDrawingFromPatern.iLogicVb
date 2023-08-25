@@ -1,0 +1,97 @@
+﻿Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	If TypeOf oDoc Is PartDocument Then
+		Call CreateDrawing(oInvApp, oTG, oDoc)
+	ElseIf TypeOf oDoc Is AssemblyDocument Then
+		Dim oAsmDoc As AssemblyDocument = oDoc
+		Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
+		For Each oRefDoc As Document In oAsmDoc.AllReferencedDocuments
+			If Not TypeOf oRefDoc Is PartDocument Or _
+				oOccs.AllReferencedOccurrences(oRefDoc).Count = 0 Then Continue For
+			Dim oPartDoc As PartDocument = oRefDoc
+			Call CreateDrawing(oInvApp, oTG, oRefDoc)
+		Next
+	End If
+End Sub
+
+Private Sub CreateDrawing(ByVal oInvApp As Inventor.Application,
+							ByVal oTG As TransientGeometry,
+							ByVal oDoc As PartDocument)
+	If Not oDoc.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then Return
+	If MsgBox("Would you like to Create a drawing for " & oDoc.DisplayName & "?",
+				vbYesNo, "Drawing Selection") = vbNo Then Return
+	
+	Dim sTemplates As String = "\\Comp59\Work SP\Templates\ru-RU\КТВ_Креслення(ДСТУ).dwg"
+	Dim oDDoc As DrawingDocument = oInvApp.Documents.Add(kDrawingDocumentObject, sTemplates, True)
+	Dim oSheet As Sheet = oDDoc.ActiveSheet
+	Dim oViews As DrawingViews = oSheet.DrawingViews
+
+	Dim oBaseView, oView3, oView5, oView6 As DrawingView
+	
+	'Limits of Drawing Border in cm
+	Dim X_Pos_Min As Double = 4'0.6
+	Dim X_Pos_Max As Double = 28.7'29.7
+	Dim Y_Pos_Min As Double = 3
+	Dim Y_Pos_Max As Double = 40'42.0
+	Dim vert_off As Integer = 1
+	
+	'Define 2d views
+	Dim oPoint1, oPoint2, oPoint4, oPoint5 As Point2d
+	oPoint1 = oTG.CreatePoint2d(X_Pos_Min+((X_Pos_Max-X_Pos_Min)*0.25), Y_Pos_Min+((Y_Pos_Max-Y_Pos_Min)*0.25)+vert_off)	' Bottom Left
+	oPoint2 = oTG.CreatePoint2d(X_Pos_Min+((X_Pos_Max-X_Pos_Min)*0.75), Y_Pos_Min+((Y_Pos_Max-Y_Pos_Min)*0.25)+vert_off)	' Bottom Right
+	oPoint4 = oTG.CreatePoint2d(26#, 9#)
+	oPoint5 = oTG.CreatePoint2d(X_Pos_Min + ((X_Pos_Max - X_Pos_Min) * 0.75), Y_Pos_Min + ((Y_Pos_Max - Y_Pos_Min) * 0.75)+vert_off)' Top Right	
+	
+	Dim oNameMap As NameValueMap = oInvApp.TransientObjects.CreateNameValueMap	
+	oNameMap.Add("SheetMetalFoldedModel", False)
+
+	Dim scale1 As Double = get_size(oDoc, X_Pos_Max, X_Pos_Min, Y_Pos_Max, Y_Pos_Min)*3
+	oBaseView = oViews.AddBaseView(oDoc, oPoint1, scale1, kCurrentViewOrientation, kHiddenLineDrawingViewStyle)	
+	oView3 = oViews.AddProjectedView(oBaseView, oPoint2, 32260)	
+    oView5 = oViews.AddBaseView(oDoc, oPoint5, scale1, kFlatBacksideViewOrientation, kHiddenLineDrawingViewStyle,,, oNameMap)
+	oView6 = oViews.AddBaseView(oDoc, oPoint4, scale1, kIsoTopLeftViewOrientation, kHiddenLineDrawingViewStyle)
+End Sub
+
+Private Function get_size(ByVal oRefDoc As PartDocument,
+							ByVal X_Pos_Max As Double,
+							ByVal X_Pos_Min As Double,
+							ByVal Y_Pos_Max As Double,
+							ByVal Y_Pos_Min As Double) As Double
+	Try
+		' Get the TransientBRep and TransientGeometry objects.
+		Dim transBRep As TransientBRep = ThisApplication.TransientBRep
+		' Combine all bodies in Part into a single transient Surface Body.
+		Dim combinedBodies As SurfaceBody = Nothing
+		For Each surfBody As SurfaceBody In oRefDoc.ComponentDefinition.SurfaceBodies
+			If combinedBodies Is Nothing Then
+				combinedBodies = transBRep.Copy(surfBody)
+			Else
+				transBRep.DoBoolean(combinedBodies, surfBody, BooleanTypeEnum.kBooleanTypeUnion)
+			End If
+		Next
+		
+		' Get the oriented mininum range box of all bodies in Part.
+		' NOTE: "OrientedMinimumRangeBox" was added in Inventor 2020.3/2021.
+		Dim minBox As OrientedBox = combinedBodies.OrientedMinimumRangeBox
+		
+		' Get length of each side of mininum range box.
+		Dim dir1 As Double = minBox.DirectionOne.Length
+		Dim dir2 As Double = minBox.DirectionTwo.Length
+		Dim dir3 As Double = minBox.DirectionThree.Length
+	
+		' Sort lengths from smallest to largest.
+		Dim lengths As New List(Of Double) From {dir1, dir2, dir3 }
+		lengths.Sort
+		
+		Dim minLength As Double = lengths(0)
+		Dim midLength As Double = lengths(1)
+		Dim maxLength As Double = lengths(2)
+		scale1 = (((Min(X_Pos_Max - X_Pos_Min, Y_Pos_Max - Y_Pos_Min)) / 2) * 0.33) / maxLength
+		Return scale1
+	Catch
+		scale1 = 1 / 50
+		Return scale1
+	End Try
+End Function

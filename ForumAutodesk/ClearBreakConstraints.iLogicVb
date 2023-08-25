@@ -1,0 +1,32 @@
+﻿Sub Main
+	Dim oDoc As Document = ThisDoc.Document
+	If oDoc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then
+		MsgBox("An Assembly Document must be active for this rule to work. Exiting.", vbCritical, "")
+		Exit Sub
+	End If
+	Dim oADoc As AssemblyDocument = oDoc
+	If oADoc.IsModifiable = False Then Exit Sub
+	Dim oConsts As AssemblyConstraints = oADoc.ComponentDefinition.Constraints
+	DeleteBrokenConstraints(oADoc.ComponentDefinition.Constraints)
+	Dim oRefDocs As DocumentsEnumerator = oADoc.AllReferencedDocuments
+	If oRefDocs.Count = 0 Then Exit Sub
+	For Each oRefDoc As Document In oRefDocs
+		If oRefDoc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then Continue For
+		Dim oRefADoc As AssemblyDocument = oRefDoc
+		If oRefADoc.IsModifiable = False Then Exit Sub
+		DeleteBrokenConstraints(oRefADoc.ComponentDefinition.Constraints)
+	Next
+	If oADoc.RequiresUpdate Then oADoc.Update2(True)
+	If oADoc.Dirty Then oADoc.Save2(True)
+End Sub
+
+Private Function DeleteBrokenConstraints(oConstraints As AssemblyConstraints)
+	If oConstraints.Count = 0 Then Exit Function
+	For Each oConst As AssemblyConstraint In oConstraints
+		Select Case oConst.HealthStatus
+			Case HealthStatusEnum.kCannotComputeHealth, HealthStatusEnum.kDriverLostHealth, _
+			HealthStatusEnum.kInErrorHealth, HealthStatusEnum.kInvalidLimitsHealth
+				Try : oConst.Delete : Catch : End Try
+		End Select
+	Next
+End Function

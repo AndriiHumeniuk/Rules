@@ -1,0 +1,46 @@
+﻿Sub main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	If Not TypeOf oDoc Is DrawingDocument Then Exit Sub
+	Dim oDDoc As DrawingDocument = oDoc
+	Dim oSS As SelectSet = oDDoc.SelectSet
+	Call oSS.Clear()
+	Dim oSegment As DrawingCurveSegment
+	oSegment = oInvApp.CommandManager.Pick(SelectionFilterEnum.kDrawingCurveSegmentFilter,
+											"Select curve...")
+	If oSegment Is Nothing Then Exit Sub
+	Dim oCurve As DrawingCurve = oSegment.Parent
+	Dim oView As DrawingView = oCurve.Parent
+	Dim oModGeo As Object = oCurve.ModelGeometry
+	Dim oDef As ComponentDefinition = oModGeo.Parent.ComponentDefinition
+	Dim oBrowser As BrowserPanes = oDDoc.BrowserPanes
+	Dim oNodeDef As NativeBrowserNodeDefinition
+	oNodeDef = oBrowser.GetNativeBrowserNodeDefinition(getTopView(oView))
+	Dim oTopBrowser As BrowserNode = oBrowser.ActivePane.TopNode
+	Dim oNode As BrowserNode = oTopBrowser.AllReferencedNodes(oNodeDef)(1)
+	oNode.Expanded = False
+	If oNode.BrowserNodes.Count = 0 Then Exit Sub
+	Call recurseNodes(oNode, oModGeo.ContainingOccurrence.Name)
+End Sub
+
+Private Function getTopView(ByVal oView As DrawingView) As DrawingView
+	If oView.ViewType <> DrawingViewTypeEnum.kStandardDrawingViewType Then
+		Call getTopView(oView.ParentView)
+	End If
+	Return oView
+End Function
+
+Private Sub recurseNodes(ByVal node As BrowserNode, ByVal sName As String)
+	If node.BrowserNodeDefinition.Label = sName Then
+		node.Expanded = True
+		node.DoSelect()
+		Return
+	Else
+		Dim iNodes As Integer = node.BrowserNodes.Count
+		If Not iNodes = 0 Then
+			For i As Integer = 1 To iNodes
+				Call recurseNodes(node.BrowserNodes(i), sName)
+			Next i
+		End If
+	End If
+End Sub

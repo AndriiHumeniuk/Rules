@@ -73,13 +73,13 @@ Public Function GetPropOfComps(oInvApp As Inventor.Application,
 		oTotlNumb = GoExcel.CurrentRowValue("TotlNumb")
 		oMeasu = GoExcel.CurrentRowValue("Measu")
 		
-		oPropComps.Add(New PropertiesOfComponent(oRevNumb, _
-												oInventorSummaryInformation("Title").Value, _
-												oDesignTrackingPropertySet("Part Number").Value, _
-												oInventorSummaryInformation("Subject").Value, _
-												oStandard, _
-												oRow.ItemQuantity, _
-												oTotlNumb, _
+		oPropComps.Add(New PropertiesOfComponent(oRevNumb,
+												oInventorSummaryInformation("Title").Value,
+												oDesignTrackingPropertySet("Part Number").Value,
+												oInventorSummaryInformation("Subject").Value,
+												oStandard,
+												oRow.ItemQuantity,
+												oTotlNumb,
 												oMeasu,
 												oCompDef.BOMStructure,
 												oCompDef.MassProperties.Volume,
@@ -175,19 +175,11 @@ Public Class PropertiesOfComponent
 	Public Property Main_size As String
 	Public Property Area_1 As String
 	
-    Public Sub New(sRevNumb As String,
-					sTitleProp As String,
-					sPartNumProp As String,
-					sSub As String,
-					sStand As String,
-					iQTY As Integer,
-					iTotlNumb As Integer,
-					sMeasu As String,
-					oBOMStructure As BOMStructureEnum,
-					dVolume As Double,
-					Optional sStren_steel As String = "",
-					Optional sMain_size As String = "",
-					Optional sArea_1 As String = "")
+    Public Sub New(sRevNumb As String, sTitleProp As String, sPartNumProp As String,
+					sSub As String, sStand As String, iQTY As Integer,
+					iTotlNumb As Integer, sMeasu As String,	oBOMStructure As BOMStructureEnum,
+					dVolume As Double, Optional sStren_steel As String = "",
+					Optional sMain_size As String = "", Optional sArea_1 As String = "")
         Me.RevNumb = sRevNumb
         Me.TitleProp = sTitleProp
         Me.PartNumProp = sPartNumProp

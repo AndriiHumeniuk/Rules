@@ -9,10 +9,14 @@
 	Dim oDesignProps As PropertySet = oAsmDoc.PropertySets("Design Tracking Properties")
 	
 	Dim oWeigt_KG, oWeigt_Lbs, oStockNumb As Inventor.Property
-	Try : oWeigt_KG = oCustom("CAM-Weight Kg")
-	Catch : oWeigt_KG = oCustom.Add("", "CAM-Weight Kg") : End Try
-	Try : oWeigt_Lbs = oCustom("CAM-Weight Lbs")
-	Catch : oWeigt_Lbs = oCustom.Add("", "CAM-Weight Lbs") : End Try
+	Try : oWeigt_KG = oCustom("Existing size Weight Kg")
+	Catch : oWeigt_KG = oCustom.Add("", "Existing size Weight Kg") : End Try
+	Try : oWeigt_Lbs = oCustom("Existing Part Weight Lbs")
+	Catch : oWeigt_Lbs = oCustom.Add("", "Existing Part Weight Lbs") : End Try
+	Try : oCustom("CAM-Weight Kg").Value = ""
+	Catch : oCustom.Add("", "CAM-Weight Kg") : End Try
+	Try : oCustom("CAM-Weight Lbs").Value = ""
+	Catch : oCustom.Add("", "CAM-Weight Lbs") : End Try
 	oStockNumb = oDesignProps("Stock Number")
 	oWeigt_KG.Value = ""
 	oWeigt_Lbs.Value = ""
@@ -27,11 +31,7 @@
 	Dim oOccDoc As PartDocument = oDef.Document
 	Dim oCCPropSet As PropertySet
 	Try : oCCPropSet = oOccDoc.PropertySets.Item("Content Library Component Properties")
-	Catch : End Try
-    If oCCPropSet Is Nothing Then
-		MessageBox.Show("The Part is not a CC part.")
-        Exit Sub
-    End If
+	Catch : MessageBox.Show("The Part is not a CC part.") : End Try
 	
 	Dim dMass As Double = oOcc.MassProperties.Mass
 	oWeigt_KG.Value = Round(dMass, 2)
@@ -46,21 +46,42 @@
 	Dim oFamily As ContentFamily
 	oFamily = oContentCenter.GetContentObject("v3#" & familyId.Value & "#")
 	Dim oContentNode As ContentTreeViewNode = oContentCenter.TreeViewTopNode
-	Dim oListBeam As UserParameter
+	Dim oListBeam, oWeightList, oLengthM As UserParameter
 	Dim oRow As ContentTableRow = oFamily.TableRows.Item(MemberId)
-	Dim oList(oFamily.TableRows.Count-1) As String
-	For i As Integer = 0 To oFamily.TableRows.Count - 1
-		oList(i) = oFamily.TableRows(i + 1).Item(1).Value
+	Dim iCount As Integer = oFamily.TableRows.Count-1
+	Dim sStockNumb(iCount), sWeight(iCount) As String
+	For i As Integer = 0 To iCount
+		sStockNumb(i) = """" & oFamily.TableRows(i + 1).Item(1).Value & """"
+		sWeight(i) = """" & oFamily.TableRows(i + 1).Item(10).Value & """"
 	Next i
 	Dim oColumn As ContentTableColumn = oFamily.TableColumns("STOCKNUMBER")
 	Try 
 		oListBeam = oUsParams("StockNumbBeamList")
-		oListBeam.Value = ""
-		oListBeam.ExpressionList.ClearAll()
 	Catch
 		oListBeam = oUsParams.AddByValue("StockNumbBeamList", "", _
 										UnitsTypeEnum.kTextUnits)
-	End Try	
-	MultiValue.List("StockNumbBeamList") = oList
-'	oListBeam.ExpressionList.SetExpressionList(oList)
+	End Try
+	oListBeam.Value = ""
+	Try
+		oWeightList = oUsParams("WeightKg")
+	Catch
+		oWeightList = oUsParams.AddByValue("WeightKg", Nothing, _
+										UnitsTypeEnum.kKilogramMassUnits)
+	End Try
+	Try : oLengthM = oUsParams("LengthM") : Catch
+	oLengthM = oUsParams.AddByValue("LengthM", Nothing, _
+										UnitsTypeEnum.kMeterLengthUnits) : End Try
+	Dim oExpList As ExpressionList
+	
+	oExpList = oListBeam.ExpressionList
+	oExpList.SetExpressionList(sStockNumb, True, 1)
+	If oExpList.AllowCustomValues Then oExpList.AllowCustomValues = False
+	If oExpList.CustomOrder Then oExpList.CustomOrder = False
+		
+	oExpList = oWeightList.ExpressionList
+	oExpList.SetExpressionList(sWeight, True, 1)
+	If oExpList.AllowCustomValues Then oExpList.AllowCustomValues = False
+	If oExpList.CustomOrder Then oExpList.CustomOrder = False
+		
+	oLengthM.Value = oDef.Parameters.UserParameters("B_L").Value
 End Sub
