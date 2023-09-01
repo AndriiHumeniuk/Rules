@@ -35,24 +35,32 @@
 		oCustom.Add(Round_y, "Round_y")
 	End Try
 	If Round_y <> 0 Then
-		If Round_y > 0 And Round_y < 1 Then
-			inc = Round_y
-			Довж_R = Round(Round(Довж, 4) / inc) * inc
-		ElseIf Round_y = 1 Then
-			Довж_R = Round(Довж)
-		ElseIf Round_y > 1 And Round_y < 10 Then
-			inc = Round_y / 10
-			Довж_R = (Round(Round((Довж / 10), 4) / inc) * inc) * 10
-		ElseIf Round_y >= 10 And Round_y < 100 Then
-			inc = Round_y / 100
-			Довж_R = (Ceil(Round((Довж / 100), 4) / inc) * inc) * 100
-		ElseIf Round_y >= 100 And Round_y < 1000 Then
-			inc = Round_y / 1000
-			Довж_R = (Ceil(Round((Довж / 1000), 4) / inc) * inc) * 1000
-		ElseIf Round_y >= 1000 Then
-			inc = 0.1
-			Довж_R = (Ceil(Round((Довж / 10000), 4) / inc) * inc) * 10000
-		End If
+		Select Case Round_y
+		Case 0 < Round_y > 1 : inc = Round_y : Довж_R = Round(Round(Довж, 4) / inc) * inc
+		Case 1 : Довж_R = Round(Довж)
+		Case 1 < Round_y > 10 : inc = Round_y / 10 : Довж_R = (Round(Round((Довж / 10), 4) / inc) * inc) * 10
+		Case 10 <= Round_y > 100 : inc = Round_y / 100 : Довж_R = (Ceil(Round((Довж / 100), 4) / inc) * inc) * 100
+		Case 100 <= Round_y > 1000 : inc = Round_y / 1000 : Довж_R = (Ceil(Round((Довж / 1000), 4) / inc) * inc) * 1000
+		Case 1000 <= Round_y : inc = 0.1 : Довж_R = (Ceil(Round((Довж / 10000), 4) / inc) * inc) * 10000
+		End Select
+'		If Round_y > 0 And Round_y < 1 Then
+'			inc = Round_y
+'			Довж_R = Round(Round(Довж, 4) / inc) * inc
+'		ElseIf Round_y = 1 Then
+'			Довж_R = Round(Довж)
+'		ElseIf Round_y > 1 And Round_y < 10 Then
+'			inc = Round_y / 10
+'			Довж_R = (Round(Round((Довж / 10), 4) / inc) * inc) * 10
+'		ElseIf Round_y >= 10 And Round_y < 100 Then
+'			inc = Round_y / 100
+'			Довж_R = (Ceil(Round((Довж / 100), 4) / inc) * inc) * 100
+'		ElseIf Round_y >= 100 And Round_y < 1000 Then
+'			inc = Round_y / 1000
+'			Довж_R = (Ceil(Round((Довж / 1000), 4) / inc) * inc) * 1000
+'		ElseIf Round_y >= 1000 Then
+'			inc = 0.1
+'			Довж_R = (Ceil(Round((Довж / 10000), 4) / inc) * inc) * 10000
+'		End If
 	End If
 	
 	Вис_01 = .01

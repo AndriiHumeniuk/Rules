@@ -1,0 +1,42 @@
+﻿Sub main
+	Dim oApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oApp.ActiveDocument
+	If TypeOf oDoc Is PartDocument Then
+		Dim oBody As SurfaceBody = CheckNameDriveSolid(oDoc.ComponentDefinition)
+		If oBody Is Nothing Then Exit Sub
+		Call RenameSolid(oBody, IO.Path.GetFileNameWithoutExtension(oDoc.FullDocumentName))
+		If oDoc.Dirty Then Call oDoc.Update()
+	Else If TypeOf oDoc Is AssemblyDocument Then
+		Dim oAsmDoc As AssemblyDocument = oDoc
+		If oAsmDoc.Dirty Then Call oAsmDoc.Update()
+		Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
+		For Each oRefDoc As Document In oAsmDoc.AllReferencedDocuments
+			If oOccs.AllReferencedOccurrences(oRefDoc).Count = 0 Or _
+				Not TypeOf oRefDoc Is PartDocument Then Continue For			
+			Dim oBody As SurfaceBody = CheckNameDriveSolid(oRefDoc.ComponentDefinition)
+			If oBody Is Nothing Then Continue For
+			Call RenameSolid(oBody, IO.Path.GetFileNameWithoutExtension(oRefDoc.FullDocumentName))
+			If oRefDoc.Dirty Then Call oRefDoc.Update()
+		Next
+		Call oAsmDoc.Update()
+	End If
+End Sub
+
+Private Function CheckNameDriveSolid(ByVal oDef As PartComponentDefinition) As SurfaceBody
+	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
+	If oDriveParts.Count = 0 Then Return Nothing
+	Dim oDrivePart As DerivedPartComponent = oDriveParts(1)
+	If oDrivePart.SolidBodies Is Nothing Then Return Nothing
+	Dim oBodyName As String = oDrivePart.SolidBodies(1).Name
+	oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
+	Dim oRefDoc As PartDocument = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+	Dim oBodies As SurfaceBodies = oRefDoc.ComponentDefinition.SurfaceBodies
+	For i As Integer = 1 To oBodies.Count
+		If oBodies(i).Name = oBodyName Then Return oBodies(i)
+	Next
+	Return Nothing
+End Function
+
+Private Function RenameSolid(ByVal oBody As SurfaceBody, ByVal sNameFile As String)
+	If oBody.Name <> sNameFile Then oBody.Name = sNameFile
+End Function 

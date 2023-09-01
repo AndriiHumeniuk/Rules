@@ -35,11 +35,9 @@
 End Sub
 
 Private Function WhatDoing() As Boolean
-	Dim digResult As DialogResult = MessageBox.Show("Площини повинні бути видимі?", "Видимість робочих площин", _
+	Dim digResult As DialogResult = MessageBox.Show("Planes must be visible?", "Visibility of working planes", _
 													MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-	If digResult.ToString = "No" Then
-		Return False
-	End If
+	If digResult.ToString = "No" Then Return False
 	Return True
 End Function
 

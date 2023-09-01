@@ -1,8 +1,8 @@
 ﻿Sub main
 	Dim oInvApp As Inventor.Application = ThisApplication
 	Dim oDoc As Document = oInvApp.ActiveDocument
-'	Dim SW As Stopwatch = New Stopwatch
-'	SW.Start()
+	Dim SW As Stopwatch = New Stopwatch
+	SW.Start()
 	If TypeOf oDoc Is AssemblyDocument Then
 		Dim oAssDoc As AssemblyDocument = oDoc
 		If CheckDocMiss(oAssDoc) Then Exit Sub
@@ -37,8 +37,8 @@
 	Else
 		MessageBox.Show("This rule can only be run in an assembly or a drawing files.", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
 	End If
-'	SW.Stop()
-'	MessageBox.Show("Час виконання = " & SW.ElapsedMilliseconds & " milliseconds", "Таймер")
+	SW.Stop()
+	MessageBox.Show("Час виконання = " & SW.ElapsedMilliseconds & " milliseconds", "Таймер")
 End Sub
 
 Public Function GetPropOfComps(oInvApp As Inventor.Application,

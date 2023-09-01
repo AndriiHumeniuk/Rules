@@ -8,15 +8,14 @@
 		Dim oOccs As ComponentOccurrences = oAssDoc.ComponentDefinition.Occurrences
 		Dim newTM As Transaction = oTM.StartTransaction(oAssDoc, "Update bolted connections")
 		For Each oRefDoc As Document In oAssDoc.AllReferencedDocuments
-			If ChackOccurrence(oRefDoc, oOccs) Then
-				Dim oOcc As ComponentOccurrence = oOccs.AllReferencedOccurrences(oRefDoc).Item(1)
-				If Not oOcc.AttributeSets.NameIsUsed("FDesign") Then Continue For
-				If oOcc.AttributeSets.Item("FDesign").Item("Req").Value <> 1 Then Continue For
-				oAssDoc.SelectSet.Select(oOcc)
-				Call oControl.Item("FDSolveAuto").Execute
-				oAssDoc.SelectSet.Select(oOcc)
-				Call oControl.Item("FDSolveManual").Execute
-			End If
+			If Not ChackOccurrence(oRefDoc, oOccs) Then Continue For
+			Dim oOcc As ComponentOccurrence = oOccs.AllReferencedOccurrences(oRefDoc).Item(1)
+			If Not oOcc.AttributeSets.NameIsUsed("FDesign") Then Continue For
+			If oOcc.AttributeSets.Item("FDesign").Item("Req").Value <> 1 Then Continue For
+			oAssDoc.SelectSet.Select(oOcc)
+			Call oControl.Item("FDSolveAuto").Execute
+			oAssDoc.SelectSet.Select(oOcc)
+			Call oControl.Item("FDSolveManual").Execute
 		Next
 		oAssDoc.Update()
 		newTM.End

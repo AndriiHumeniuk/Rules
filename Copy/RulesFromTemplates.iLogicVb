@@ -1,17 +1,19 @@
 ﻿' <FireOthersImmediately>False</FireOthersImmediately>
 Sub Main
-	Dim oDoc As Document = ThisDoc.Document
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
 	If Not TypeOf oDoc Is AssemblyDocument Then Exit Sub
 	Dim oAsmDoc As AssemblyDocument = oDoc
 	Dim oOccs As ComponentOccurrences = oAsmDoc.ComponentDefinition.Occurrences
-	Dim oPBar As Inventor.ProgressBar = ThisApplication.CreateProgressBar(False, oAsmDoc.AllReferencedDocuments.Count, "Copy ryles...")
+	Dim oPBar As Inventor.ProgressBar = oInvApp.CreateProgressBar(False, oAsmDoc.AllReferencedDocuments.Count, "Copy ryles...")
 	Dim i As Integer = 1
 	oPBar.Message = "Loading..."
-	Dim oPartDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
-	Dim oSMDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
-	Dim oADoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Сборка.iam", False) 'AssemblyDocument
-	Dim oFrameDoc As Document = ThisApplication.Documents.Open("\\Comp59\Work SP\Templates\ru-RU\OldTemplates\ШаблонПрофіля.ipt", False) 'Frame Generator PartDocument
-	Dim oTM As Transaction = ThisApplication.TransactionManager.StartTransaction(oAsmDoc, "CopyRulesFromTemplates")
+	Dim oDocs As Documents = oInvApp.Documents
+	Dim oPartDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
+	Dim oSMDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
+	Dim oADoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Сборка.iam", False) 'AssemblyDocument
+	Dim oFrameDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\OldTemplates\ШаблонПрофіля.ipt", False) 'Frame Generator PartDocument
+	Dim oTM As Transaction = oInvApp.TransactionManager.StartTransaction(oAsmDoc, "CopyRulesFromTemplates")
 	Call CopyRules(oADoc, oAsmDoc)
 	Call CopyEventsPropSet(oADoc, oAsmDoc)
 	For Each copyTo As Document In oAsmDoc.AllReferencedDocuments

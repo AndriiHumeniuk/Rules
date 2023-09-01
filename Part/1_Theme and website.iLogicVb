@@ -9,7 +9,7 @@
 	Dim i As Integer = 0
 	
 	'[Select Тема_Вибір
-	Dim List1 As New ArrayList
+	Dim List1 As New List(Of String)
 	List1.AddRange({"Прут", "Квадрат", "Шестиграник", "Лист", "Лист ромб", "Лист сочевиця", "Лист ПВ", "Настил", "ДСП", "OSB/3", _
 					"Дошка", "Брус", "Двотавр", "Кутик", "Труба", "Швелер", "Перо шнека", "Дріт" , "С-подібний профіль"})
 	List1.Sort
@@ -20,7 +20,7 @@
 	Тема = InputListBox(oDoc.DisplayName, List1, List1(i), Title := "Тип елемента.", ListName := "Вибіріть заготовку:")
 	oRevNumb.Value = Тема']
 	
-	Dim List2 As New ArrayList
+	Dim List2 As New List(Of String)
 	Dim j As Integer = 0
 	Select Case Тема
 	Case "Прут" : Веб_сайт = "ДСТУ 4738"

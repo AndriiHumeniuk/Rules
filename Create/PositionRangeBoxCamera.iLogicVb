@@ -6,39 +6,36 @@
 	Dim oVisDocs As DocumentsEnumerator = oDocs.VisibleDocuments
 	Dim newTM As Transaction
 	If TypeOf oDoc Is PartDocument Then
-		Dim oPDoc As PartDocument = oDoc
-		newTM = oTM.StartTransaction(oPDoc, "ChangePositionCamera")
-		Call PackagingComponent(oAppInv, oPDoc)
+		newTM = oTM.StartTransaction(oDoc, "ChangePositionCamera")
+		Call PackagingComponent(oAppInv, oDoc)
 		newTM.End()
 		oAppInv.CommandManager.ControlDefinitions.Item("AppZoomallCmd").Execute()
 	Else If TypeOf oDoc Is AssemblyDocument Then
 		Dim oADoc As AssemblyDocument = oDoc
 		newTM = oTM.StartTransaction(oADoc, "ChangePositionCamera")
 		For Each oRefDoc As Document In oADoc.AllReferencedDocuments
-			If TypeOf oRefDoc Is PartDocument Then
-				Dim oPartDoc As PartDocument = oRefDoc
-				If oPartDoc.IsModifiable Then
-					Dim oPartDef As ComponentDefinition = oPartDoc.ComponentDefinition
-					If oPartDef.BOMStructure = BOMStructureEnum.kPhantomBOMStructure Or _
-						oPartDoc.DocumentInterests.HasInterest("{C6107C9D-C53F-4323-8768-F65F857F9F5A}") Or _
-						oPartDoc.DocumentInterests.HasInterest("{4D39D5F1-0985-4783-AA5A-FC16C288418C}") Or _
-						oPartDoc.DocumentInterests.HasInterest("{AC211AE0-A7A5-4589-916D-81C529DA6D17}") Or _
-						oPartDoc.DocumentInterests.HasInterest("{BB8FE430-83BF-418D-8DF9-9B323D3DB9B9}") Then Continue For
-					Dim bVisible As Boolean
-					For Each oVisDoc As Document In oVisDocs
-						If oVisDoc Is oPartDoc Then bVisible = True
-					Next
-					If bVisible Then
-						oPartDoc.Activate()
-						Call PackagingComponent(oAppInv, oPartDoc)
-						oPartDoc.Save()
-					Else
-						Dim oVisDoc As Document = oDocs.Open(oPartDoc.FullDocumentName, True)
-						Call PackagingComponent(oAppInv, oVisDoc)
-						oVisDoc.Save()
-						oVisDoc.Close()
-					End If
-				End If
+			If Not TypeOf oRefDoc Is PartDocument Or _
+				Not oRefDoc.IsModifiable Then Continue For
+			Dim oPartDoc As PartDocument = oRefDoc
+			Dim oPartDef As ComponentDefinition = oPartDoc.ComponentDefinition
+			If oPartDef.BOMStructure = BOMStructureEnum.kPhantomBOMStructure Or _
+				oPartDoc.DocumentInterests.HasInterest("{C6107C9D-C53F-4323-8768-F65F857F9F5A}") Or _
+				oPartDoc.DocumentInterests.HasInterest("{4D39D5F1-0985-4783-AA5A-FC16C288418C}") Or _
+				oPartDoc.DocumentInterests.HasInterest("{AC211AE0-A7A5-4589-916D-81C529DA6D17}") Or _
+				oPartDoc.DocumentInterests.HasInterest("{BB8FE430-83BF-418D-8DF9-9B323D3DB9B9}") Then Continue For
+			Dim bVisible As Boolean
+			For Each oVisDoc As Document In oVisDocs
+				If oVisDoc Is oPartDoc Then bVisible = True
+			Next
+			If bVisible Then
+				oPartDoc.Activate()
+				Call PackagingComponent(oAppInv, oPartDoc)
+				oPartDoc.Save()
+			Else
+				Dim oVisDoc As Document = oDocs.Open(oPartDoc.FullDocumentName, True)
+				Call PackagingComponent(oAppInv, oVisDoc)
+				oVisDoc.Save()
+				oVisDoc.Close()
 			End If
 			If Not oADoc.IsOpenExpress Then	oADoc.Activate()
 		Next
@@ -46,7 +43,7 @@
 	End If
 End Sub
 
-Private Sub PackagingComponent(oAppInv As Inventor.Application, oPDoc As PartDocument)
+Private Sub PackagingComponent(ByVal oAppInv As Inventor.Application, ByVal oPDoc As PartDocument)
 	Dim oTG As TransientGeometry = oAppInv.TransientGeometry
 	Dim oPDef As ComponentDefinition = oPDoc.ComponentDefinition
 	Dim minBox As OrientedBox = oPDef.SurfaceBodies.Item(1).OrientedMinimumRangeBox
@@ -54,17 +51,17 @@ Private Sub PackagingComponent(oAppInv As Inventor.Application, oPDoc As PartDoc
 	If oVectorY Is Nothing Then Exit Sub
 	Dim oVectorZ As Vector = GetVectorZ(minBox)
 	If oVectorZ Is Nothing Then Exit Sub
-	Dim oMaxPlane As Plane = oTG.CreatePlane(minBox.CornerPoint, minBox.DirectionTwo)
+	Dim oMaxPlane As Plane = oTG.CreatePlane(minBox.CornerPoint, oVectorZ)
 	Call ChangeViewCam(oPDoc.Views.Item(1).Camera, oMaxPlane, oVectorY)
 End Sub
 
-Private Function ChangeViewCam(oCam As Camera, oPlane As Plane, oVector As Vector)	
+Private Function ChangeViewCam(ByVal oCam As Camera, ByVal oPlane As Plane, ByVal oVector As Vector)
 	Dim oPoint As Point = oCam.Target.Copy
 	Call oPoint.TranslateBy(oPlane.Normal.AsVector())
 	oCam.Eye = oPoint
 	oCam.UpVector = oVector.AsUnitVector()
 	Call oCam.ApplyWithoutTransition
-	oCam.Parent.SetCurrentAsFront
+	Call oCam.Parent.SetCurrentAsFront
 End Function
 
 Private Function GetVectorY(ByVal minBox As OrientedBox) As Vector
@@ -72,7 +69,7 @@ Private Function GetVectorY(ByVal minBox As OrientedBox) As Vector
 	dLengths(0) = minBox.DirectionOne.Length
 	dLengths(1) = minBox.DirectionTwo.Length
 	dLengths(2) = minBox.DirectionThree.Length
-	Dim dMid As Double = dLengths.Sum() - dLengths.Max - dLengths.Min
+	Dim dMid As Double = dLengths.Sum() -dLengths.Max - dLengths.Min
 	Select Case Round(dMid, 3)
 	Case Round(minBox.DirectionOne.Length, 3) : Return minBox.DirectionOne
 	Case Round(minBox.DirectionTwo.Length, 3) : Return minBox.DirectionTwo
