@@ -84,6 +84,12 @@
 			27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 52, 53, 54, 55, 56, 58, 60, 62, 63, 65, 67, 68, _
 			70, 72, 73, 75, 78, 80, 82, 85, 87, 90, 92, 95, 97, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, _
 			190, 195, 200, 210, 220, 230, 240, 250, 260, 270})
+			For i As Integer = 0 To SizeStandart.Count
+				If iPropValSumSub <= SizeStandart.Item(i) Then
+					iPropValSumSub = SizeStandart.Item(i)
+					Exit For
+				End If
+			Next
 			If Довж_R = Шир_R Then
 				iPropValSumSub = "" & Довж_R & ""
 				ParamLong = oUserParams("Висота")
@@ -91,13 +97,7 @@
 			Else
 				iPropValSumSub = "" & Вис_R & ""
 				МасОбєм = (PI * (iPropValSumSub/2) * (iPropValSumSub/2)) * Довж_R
-			End If
-			For i As Integer = 0 To SizeStandart.Count
-				If iPropValSumSub <= SizeStandart.Item(i) Then
-					iPropValSumSub = SizeStandart.Item(i)
-					Exit For
-				End If
-			Next']
+			End If']
 	'[ Дріт
 		Case "ДСТУ 3671-97"
 			SizeStandart.AddRange({0.8, 1, 1.2, 1.6, 2, 2.4, 2.5, 3.0, 3.2, 4, 5, 6, 7, 8})

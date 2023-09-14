@@ -1,0 +1,68 @@
+﻿AddReference "System.xml.dll"
+Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	Dim oDoc As Document = oInvApp.ActiveDocument
+	If Not TypeOf oDoc Is DrawingDocument Then Exit Sub
+	Dim oDDoc As DrawingDocument = oDoc
+	Dim oObj As Object
+	Do
+		oObj = oInvApp.CommandManager.Pick(SelectionFilterEnum.kDrawingSketchedSymbolFilter, "Select table...")
+		If oObj Is Nothing Then Exit Sub
+	Loop While Not TypeOf oObj Is DrawingSketch
+	Dim oTable As DrawingSketch = oObj
+	Dim oTM As Transaction = oInvApp.TransactionManager.StartTransaction(oDDoc, "ClearCompasTable")
+	oTable.Edit()
+	Dim oList As IEnumerable(Of Inventor.TextBox) = oTable.TextBoxes.Cast(Of Inventor.TextBox)
+	For Each oBox As Inventor.TextBox In oList
+		Dim xmlDoc As New System.Xml.XmlDocument
+		xmlDoc.LoadXml(oBox.FormattedText)
+		Dim sFontSize As String = xmlDoc.ChildNodes(0).Attributes("FontSize").Value
+		Dim sText As String = xmlDoc.ChildNodes(0).ChildNodes(0).Value
+		Dim oPoint As Point2d = oTG.CreatePoint2d(oBox.Origin.X, oBox.Origin.Y)
+		Dim oNewBox As Inventor.TextBox = oTable.TextBoxes.AddFitted(oPoint, sText)
+		If sText.Contains("Число зубьев") Then : sText = " Число зубів"
+		ElseIf sText.Contains("Допуск на торцовое биение") Then : sText = " Допуск на торцеве биття"
+		ElseIf sText.Contains("Допуск на погрешность") Then : sText = " Допуск на погрішність"
+		ElseIf sText.Contains("Угол наклона зубьев") Then : sText = " Кут нахилу зубів"
+		ElseIf sText.Contains("Направление линии зуба") Then : sText = " Направлення лінії зуба"
+		ElseIf sText.Contains("Исходный контур") Then : sText = " Вихідний контур"
+		ElseIf sText.Contains("Коэффициент смещения") Then : sText = " Коефіціент зміщення"
+		ElseIf sText.Contains("Степень точности по ГОСТ 1643-81") Then : sText = " Степінь точності по ГОСТ 1643-81"
+		ElseIf sText.Contains("Длина общей нормали") Then : sText = " Довжина загальної нормалі"
+		ElseIf sText.Contains("Допуск на колебание длины") Then : sText = " Допуск на коливання довжини"
+		ElseIf sText.Contains("общей нормали") Then : sText = " загальної нормалі"
+		ElseIf sText.Contains("колебание") Then : sText = " коливання"
+		ElseIf sText.Contains("измерительного") Then : sText = " вимірюваної"
+		ElseIf sText.Contains("межосевого") Then : sText = " міжосевої"
+		ElseIf sText.Contains("расстояния") Then : sText = " відстані"
+		ElseIf sText.Contains("За оборот") Then : sText = " За оберт"
+		ElseIf sText.Contains("На одном") Then : sText = " На одному"
+		ElseIf sText.Contains("зубе") Then : sText = " зубі"
+		ElseIf sText.Contains("Контролировать") Then : sText = " Контролювати"
+		ElseIf sText.Contains("при отсутствии") Then : sText = " при відсутності"
+		ElseIf sText.Contains("обкатки с") Then : sText = " обкатки з"
+		ElseIf sText.Contains("измерительной") Then : sText = " вимірюваною"
+		ElseIf sText.Contains("шестерней") Then : sText = " шестерною"
+		ElseIf sText.Contains("радиальное") Then : sText = " радіальне"
+		ElseIf sText.Contains("биение") Then : sText = " биття"
+		ElseIf sText.Contains("зубчатого венца") Then : sText = " зубчастого вінця"
+		ElseIf sText.Contains("погрешность") Then : sText = " погрішність"
+		ElseIf sText.Contains("профиля зуба") Then : sText = " профіля зуба"
+		ElseIf sText.Contains("Отклонение") Then : sText = " Відхилення"
+		ElseIf sText.Contains("основного шага") Then : sText = " основного кроку"
+		ElseIf sText.Contains("Делительный диаметр") Then : sText = " Ділильний діаметр"
+		ElseIf sText.Contains("направления зуба") Then : sText = " направлення зуба"
+		ElseIf sText.Contains("базовой поверхности") Then : sText = " базової поверхні"
+		ElseIf sText.Contains("Обозначение чертежа") Then : sText = " Позначення креслення"
+		ElseIf sText.Contains("сопражённого зубчатого колеса") Then : sText = " спряженої шестерні"
+		ElseIf sText.Contains("правое") Then : sText = "праве"
+		ElseIf sText.Contains("левое") Then : sText = "ліве"
+		End If
+		oNewBox.FormattedText = "<StyleOverride Font='GOST Common' FontSize='" & sFontSize & _
+								"'>" & sText & " </StyleOverride>"
+		oBox.Delete()
+	Next
+	oTable.ExitEdit()
+	oTM.End()
+End Sub

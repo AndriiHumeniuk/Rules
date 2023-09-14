@@ -1,0 +1,34 @@
+﻿Sub Main
+	If ThisDoc.Document.DocumentType <> DocumentTypeEnum.kDrawingDocumentObject Then Exit Sub
+	oDDoc = ThisDoc.Document
+	oDocEvents = oDDoc.DocumentEvents
+	AddHandler oDocEvents.OnSave, AddressOf oDocEvents_OnSave
+	AddHandler oDocEvents.OnClose, AddressOf oDocEvents_OnClose
+End Sub
+
+Dim oDDoc As DrawingDocument
+Dim oDocEvents As DocumentEvents
+
+Sub oDocEvents_OnSave(oTiming As EventTimingEnum, Context As NameValueMap, ByRef HandlingCode As HandlingCodeEnum)
+	If oTiming = EventTimingEnum.kBefore Then
+		Dim oSheets As Inventor.Sheets = oDDoc.Sheets
+		Dim oTable As Inventor.CustomTable = Nothing
+		For Each oSheet As Inventor.Sheet In oSheets
+			Dim oCTables As Inventor.CustomTables = oSheet.CustomTables
+			If oCTables.Count = 0 Then Continue For
+			oTable = oCTables.Item(1)
+			Exit For
+		Next
+		oDDoc.SelectSet.Clear
+		oDDoc.SelectSet.Select(oTable)
+		ThisApplication.CommandManager.ControlDefinitions.Item("DrawingTableEditCtxCmd").Execute2(True)
+		HandlingCode = HandlingCodeEnum.kEventNotHandled
+	End If
+End Sub
+
+Sub oDocEvents_OnClose(oTiming As EventTimingEnum, Context As NameValueMap, ByRef HandlingCode As HandlingCodeEnum)
+	If oTiming = EventTimingEnum.kBefore Then
+		RemoveHandler oDocEvents.OnSave, AddressOf oDocEvents_OnSave
+		HandlingCode = HandlingCodeEnum.kEventNotHandled
+	End If
+End Sub

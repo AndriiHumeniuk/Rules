@@ -1,0 +1,89 @@
+﻿Option Explicit On
+AddReference "E:\PF\Autodesk\Revit 2024\RevitAPI.dll"
+AddReference "E:\PF\Autodesk\Revit 2024\RevitAPIUI.dll"
+Imports Autodesk.Revit.DB
+Imports Autodesk.Revit.UI
+Sub main
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oDoc As Inventor.Document = oInvApp.ActiveDocument
+	If Not TypeOf oDoc Is AssemblyDocument Then Exit Sub
+	Dim oAsmDoc As AssemblyDocument = oDoc
+	Dim oRvtExp As RevitExports = oAsmDoc.ComponentDefinition.RevitExports
+	Dim sPathRVTFile As String
+	If oRvtExp.Count = 0 Then
+		sPathRVTFile = GetPathOnRVTFile(oInvApp, oDoc.FullDocumentName)
+	Else
+		sPathRVTFile = oRvtExp(1).FullFileName
+		If Not System.IO.File.Exists(sPathRVTFile) Then
+			sPathRVTFile = GetPathOnRVTFile(oInvApp, oDoc.FullDocumentName)
+		End If
+	End If
+	If Not System.IO.File.Exists(sPathRVTFile) Then Exit Sub
+	Dim Process As New System.Diagnostics.Process
+	Process.Start(sPathRVTFile)
+	Dim sMainWinTitle As String
+	BeckCode :
+	Try
+		sMainWinTitle = Process.MainWindowTitle
+	Catch
+		Process.Refresh()
+		System.Threading.Thread.Sleep(1000)
+		GoTo BeckCode
+	End Try
+	MessageBox.Show("Додаток запущено - " & sMainWinTitle, "Вікторі!")
+'	Dim oRvtApp As Autodesk.Revit.UI.IExternalApplication = Nothing
+'	Do
+'		System.Threading.Thread.Sleep(1000)
+'		oRvtApp = GetRevitApplication(Process.MainWindowHandle)
+'	Loop
+End Sub
+
+Private Function GetPathOnRVTFile(ByVal oInvApp As Inventor.Application, ByVal sFullPath As String)
+	Dim oFileDlg As Inventor.FileDialog = Nothing
+	oInvApp.CreateFileDialog(oFileDlg)
+	oFileDlg.InitialDirectory = System.IO.Path.GetDirectoryName(sFullPath)
+	oFileDlg.Filter = "Revit File (*.rvt)|*.rvt"
+	oFileDlg.CancelError = True
+	oFileDlg.ShowOpen()
+	Return oFileDlg.FileName
+End Function
+
+'Private Function Execute() As Autodesk.Revit.UI.IExternalApplication
+'	Dim oRVT As Object
+'	Try
+'		oRVT = GetObject(, "Autodesk.Revit.UI.IExternalApplication")
+'	Catch
+'		oRVT = CreateObject("Autodesk.Revit.UI.IExternalApplication")
+'	Catch
+'		Return Nothing
+'	End Try
+'	Return oRVT
+'End Function
+
+'Function OnStartup(oRvtApp As oUI.UIControlledApplication) As oUI.Result Implements oUI.IExternalApplication
+'	AddHandler oRvtApp.Idling, AddressOf OnIdling
+'	Return oUI.Result.Succeeded
+'End Function
+
+'Private Sub OnIdling(sender As Object, e As oUI.Events.IdlingEventArgs)
+'	Dim uiApp As oUI.UIApplication = TryCast(sender, oUI.UIApplication)
+'End Sub
+
+'Public Function OnShutdown(oRvtApp As oUI.UIControlledApplication) As oUI.Result Implements oUI.IExternalApplication
+'	RemoveHandler oRvtApp.Idling, AddressOf OnIdling
+'	Return oUI.Result.Succeeded
+'End Function
+
+'Public Function Execute(commandData As oUI.ExternalCommandData,
+'						ByRef message As String,
+'						elements As oDB.ElementSet) As oUI.Result Implements oUI.IExternalCommand.Execute
+'    Dim uiApp As New oUI.UIApplication(commandData.Application.Application)
+'    Dim doc As Document = commandData.Application.ActiveUIDocument.Document
+'    AddHandler uiApp.Idling, AddressOf idleUpdate
+'    Return oUI.Result.Succeeded
+'End Function
+
+'Public Sub idleUpdate(sender As Object, e As oUI.Events.IdlingEventArgs)
+'    Dim uiApp As oUI.UIApplication = TryCast(sender, oUI.UIApplication)
+'    Dim doc As Document = uiApp.ActiveUIDocument.Document
+'End Sub

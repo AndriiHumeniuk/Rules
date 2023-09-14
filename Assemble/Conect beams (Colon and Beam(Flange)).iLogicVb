@@ -1,6 +1,7 @@
 ﻿Sub main()
-	oDoc = ThisApplication.ActiveDocument
-	Dim fso = ThisApplication.FileManager.FileSystemObject
+	Dim InvApp As Inventor.Application = ThisApplication
+	Dim oDoc As AssemblyDocument = InvApp.ActiveDocument
+	Dim fso = InvApp.FileManager.FileSystemObject
 	Dim aDef As AssemblyComponentDefinition = oDoc.ComponentDefinition
 	
 	If oDoc.DocumentType = kPartDocumentObject Then
@@ -8,7 +9,7 @@
 	Return
 	End If
 	
-	Dim Colon1 As ComponentOccurrence = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
+	Dim Colon1 As ComponentOccurrence = InvApp.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
 		"Вибіріть колону...(Press ESC to cancel)")
 	If IsNothing(Colon1) Then Exit Sub ' If nothing gets selected then we're done
 		
@@ -46,7 +47,7 @@
 		t2_Colon = oColonUserParams.Item("G_T")
 	End If
 	
-	Dim Beam1 As ComponentOccurrence = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
+	Dim Beam1 As ComponentOccurrence = InvApp.CommandManager.Pick(SelectionFilterEnum.kAssemblyLeafOccurrenceFilter, _
 		"Вибиріть балку...(Press ESC to cancel)")
 	If IsNothing(Beam1) Then Exit Sub ' If nothing gets selected then we're done
 	
@@ -97,20 +98,20 @@
 	Dim wpStart_Beam As WorkPlaneProxy : Beam1.CreateGeometryProxy(oBeamDef.WorkPlanes.Item(4), wpStart_Beam)
 	Dim wpEnd_Beam As WorkPlaneProxy : Beam1.CreateGeometryProxy(oBeamDef.WorkPlanes.Item(5), wpEnd_Beam)
 	
-	Dim MeasX As Double = ThisApplication.MeasureTools.GetAngle(axiX_Colon, axiX_Beam)
-	Dim MeasZ As Double = ThisApplication.MeasureTools.GetAngle(axiZ_Colon, axiZ_Beam)
-	Dim measuStart As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Beam, axiZ_Colon)
-	Dim measuEnd As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Beam, axiZ_Colon)
+	Dim MeasX As Double = InvApp.MeasureTools.GetAngle(axiX_Colon, axiX_Beam)
+	Dim MeasZ As Double = InvApp.MeasureTools.GetAngle(axiZ_Colon, axiZ_Beam)
+	Dim measuStart As Double = InvApp.MeasureTools.GetMinimumDistance(wpStart_Beam, axiZ_Colon)
+	Dim measuEnd As Double = InvApp.MeasureTools.GetMinimumDistance(wpEnd_Beam, axiZ_Colon)
 	Dim vectorColonZ As UnitVector = axiZ_Colon.Line.Direction
 	Dim vectorBeamY As UnitVector = axiY_Beam.Line.Direction
-	Dim measuStartHigt As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Beam, aDef.WorkPlanes.Item(2))
-	Dim measuEndHigt As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Beam, aDef.WorkPlanes.Item(2))
+	Dim measuStartHigt As Double = InvApp.MeasureTools.GetMinimumDistance(wpStart_Beam, aDef.WorkPlanes.Item(2))
+	Dim measuEndHigt As Double = InvApp.MeasureTools.GetMinimumDistance(wpEnd_Beam, aDef.WorkPlanes.Item(2))
 	Dim PosBeam As Boolean
 	Dim PosKnotForColon As Boolean
 	Dim PosKnotForBeam As Boolean
 	If measuStart < measuEnd Then
-		Dim measu_Bwp_CwpS As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Beam, wpStart_Colon)
-		Dim measu_Bwp_CwpE As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpStart_Beam, wpEnd_Colon)
+		Dim measu_Bwp_CwpS As Double = InvApp.MeasureTools.GetMinimumDistance(wpStart_Beam, wpStart_Colon)
+		Dim measu_Bwp_CwpE As Double = InvApp.MeasureTools.GetMinimumDistance(wpStart_Beam, wpEnd_Colon)
 		If measu_Bwp_CwpS < measu_Bwp_CwpE Then 'C1-B2
 			PosKnotForColon = False
 			PosKnotForBeam = True
@@ -129,8 +130,8 @@
 			PosBeam = False 'Балка до низу
 		End If
 	Else
-		Dim measu_Bwp_CwpS As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Beam, wpStart_Colon)
-		Dim measu_Bwp_CwpE As Double = ThisApplication.MeasureTools.GetMinimumDistance(wpEnd_Beam, wpEnd_Colon)
+		Dim measu_Bwp_CwpS As Double = InvApp.MeasureTools.GetMinimumDistance(wpEnd_Beam, wpStart_Colon)
+		Dim measu_Bwp_CwpE As Double = InvApp.MeasureTools.GetMinimumDistance(wpEnd_Beam, wpEnd_Colon)
 		If measu_Bwp_CwpS < measu_Bwp_CwpE Then 'C1-B3
 			PosKnotForColon = True
 			PosKnotForBeam = False
@@ -252,14 +253,14 @@
 		Dim NewKnotName As String = codeBeamPath & " " & WriteKnot & ".iam"
 		newKnot = oBeamPath & "\" & NewKnotName
 		Try
-			Dim ExistKnot As Document = ThisApplication.Documents.ItemByName(newKnot)
+			Dim ExistKnot As Document = InvApp.Documents.ItemByName(newKnot)
 			MessageBox.Show("Обєкт з даним іменем, вже існує. Оберіть інше ім'я.", "Помилка!")
 			WriteKnot = "Приклад: Фланцевий вузол К1-Б1"
 		Catch
 			Dim DesigneKnot As String = "\\Comp59\Work SP\Storage data\iCopy family\Конструктивні вузли\Примикання балки до колони\Фланцевий вузол"
 			Dim copyKnot As String = DesigneKnot & "\02.01.000 Knot.iam"
 			fso.copyFile(copyKnot, newKnot, True)
-			oAssKnot = ThisApplication.Documents.Open(newKnot, False)
+			oAssKnot = InvApp.Documents.Open(newKnot, False)
 		End Try
 	Loop
 	
@@ -297,14 +298,14 @@
 	oAssKnot.Close
 	
 	Dim oTG As TransientGeometry
-	oTG = ThisApplication.TransientGeometry
+	oTG = InvApp.TransientGeometry
 	Dim oMatrix As Matrix
 	oMatrix = oTG.CreateMatrix
 		
 	'[<<<<<<<<<<<<<<<<<<<<< Робота зі збіркою БАЛКИ >>>>>>>>>>>>>>>>>>>>>>>
 	oAssBeam = oBeamPath & "\" & BeamAssembName & ".iam"
 	
-	Dim oAsm_B As AssemblyDocument = ThisApplication.Documents.Open(oAssBeam, False)
+	Dim oAsm_B As AssemblyDocument = InvApp.Documents.Open(oAssBeam, False)
 	Dim oOcc_Beam As ComponentOccurrence
 	Dim oAsmCompDef_B As AssemblyComponentDefinition = oAsm_B.ComponentDefinition
 	Dim oViewKnot_B As Boolean = True
@@ -392,7 +393,7 @@
 	'[<<<<<<<<<<<<<<<<<<<<< Робота зі збіркою КОЛОНИ >>>>>>>>>>>>>>>>>>>>>>>
 	oAssColon = oColonPath & "\" & ColonAssembName & ".iam"
 	
-	Dim oAsm_C As AssemblyDocument = ThisApplication.Documents.Open(oAssColon, False)
+	Dim oAsm_C As AssemblyDocument = InvApp.Documents.Open(oAssColon, False)
 	Dim oOcc_Colon As ComponentOccurrence
 	Dim oAsmCompDef_C As AssemblyComponentDefinition = oAsm_C.ComponentDefinition
 	
