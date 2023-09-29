@@ -1,6 +1,8 @@
-﻿Sub main()
-	Dim oInvApp As Inventor.Application = ThisApplication
-	Dim oDoc As PartDocument = ThisDoc.Document	
+﻿Sub main
+	oInvApp = ThisApplication
+	oDoc = ThisDoc.Document
+	Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
+	If oDoc.FileSaveCounter = 0 Or oDoc.IsModifiable = False Or oDef.SurfaceBodies.Count <> 1 Then Exit Sub
 	Dim oRevNumb As Inventor.Property = oDoc.PropertySets("Inventor Summary Information")("Revision Number")
 	Dim Тема As String = oRevNumb.Value
 	Dim oProject As PropertySet = oDoc.PropertySets("Design Tracking Properties")
@@ -28,18 +30,18 @@
 	Case "Квадрат" : Веб_сайт = "ДСТУ 4746"
 	Case "Шестиграник" : Веб_сайт = "ДСТУ EN 10061"
 	Case "Лист" : Веб_сайт = "ДСТУ 8540"
-	Case "Лист ромб" Or "Лист сочевиця" : Веб_сайт = "ДСТУ 8783"
+	Case "Лист ромб", "Лист сочевиця" : Веб_сайт = "ДСТУ 8783"
 	Case "Лист ПВ" : Веб_сайт = "ГОСТ 8706-78"
 	Case "Настил" : Веб_сайт = "DIN 24537-1"
 	Case "ДСП" : Веб_сайт = "ДСТУ ГОСТ 10632"
 	Case "OSB/3" : Веб_сайт = "ДСТУ EN 300"
-	Case "Дошка" Or "Брус" : Веб_сайт = "ДСТУ ISO 738"
+	Case "Дошка", "Брус" : Веб_сайт = "ДСТУ ISO 738"
 	Case "Двотавр" : List2.AddRange({"DIN 1025-2", "DIN 1025-4", "DIN 1025-5", "EURONORM 53-62", "ГОСТ 26020-83", "ДСТУ 8768" })
 	Case "Кутик" : List2.AddRange({"ДСТУ 2251", "ДСТУ 2254-93", "ДСТУ 2255-93", "ДСТУ 8769", "ДСТУ EN 10056-1" })
 	Case "Труба" : List2.AddRange({"ДСТУ 8943", "ДСТУ Б В.2.6-8-95", "ДСТУ 8936", "ДСТУ 8940", "ДСТУ 8938", "ДСТУ 8939", "ДСТУ ISO 1127", _
 									"ДСТУ EN 10210-2", "ДСТУ EN 10216-1" })
 	Case "Швелер" : List2.AddRange({"DIN 1026-1", "DIN 1026-2", "П ДСТУ 3436-96", "У ДСТУ 3436-96" })
-	Case "Перо шнека" :	oRevNumb.Value = "Лист" : Веб_сайт = "ДСТУ 8540" : Call CreatSheetScrew(oInvApp, oDoc)
+	Case "Перо шнека" :	oRevNumb.Value = "Лист" : Веб_сайт = "ДСТУ 8540" : Call CreatSheetScrew(oDoc)
 	Case "С-подібний профіль" : Веб_сайт = "ДСТУ 8808" : Call ProfilThick(oDoc)
 	End Select
 	
@@ -60,21 +62,26 @@
 	End If
 	
 	If Веб_сайт = "Прут" Or Веб_сайт = "Квадрат" Or Веб_сайт = "Шестиграник" Or Тема = "Труба" Then
-		Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
 		If HasSweep(oDef) Then
 			Dim oFeat As PartFeature = FindFeatures(oDef)
 			If Not IsNothing(oFeat) Then 
-				FindSizeProfil(oInvApp, oFeat, Веб_сайт)
+				FindSizeProfil(oFeat, Веб_сайт)
 			End If
 		End If
 	End If
 	
 	oWebLink.Value = Веб_сайт
-		
-	iLogicVb.RunRule("2_Габарит деталі")
+	
+	Try : iLogicVb.RunRule("2_Габарит деталі")
+	Catch :	iLogicVb.RunExternalRule("2_DimensionsOfPart")
+	End Try
 	
 	oDoc.Update()
 End Sub
+
+Dim oInvApp As Inventor.Application
+Dim oMT As MeasureTools
+Dim oDoc As PartDocument
 
 Private Function HasSweep(oDef As PartComponentDefinition) As Boolean
 	If oDef.Features.Item(1).Type = ObjectTypeEnum.kReferenceFeatureObject Then
@@ -89,7 +96,7 @@ Private Function HasSweep(oDef As PartComponentDefinition) As Boolean
 	Return False
 End Function
 
-Private Function FindFeatures(oDef As PartComponentDefinition) As PartFeature
+Private Function FindFeatures(ByVal oDef As PartComponentDefinition) As PartFeature
 	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
 	If oDriveParts.Count = 0 Then Return Nothing
 	Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
@@ -109,7 +116,7 @@ Private Function FindFeatures(oDef As PartComponentDefinition) As PartFeature
 	Return Nothing
 End Function
 
-Private Function FindSizeProfil(oInvApp As Inventor.Application, oSweep As SweepFeature, Веб_сайт As String)
+Private Function FindSizeProfil(oSweep As SweepFeature, Веб_сайт As String)
 	Dim oDef As PartComponentDefinition = oSweep.Parent
 	Dim oSketch As PlanarSketch = oSweep.Profile.Parent
 	Dim oParams As Parameters = oDef.Parameters
@@ -231,7 +238,7 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		If oFeat.Type = kThickenFeatureObject Then '83955200 (Товщина)
 			tName = oFeat.Parameters.Item(1).Name
 		Else
-			Call CreateListParams(oFeat.Profile.Parent)
+			tName = CreateListParams(oFeat.Profile.Parent)
 		End If
 		For Each oDPEnt As DerivedPartEntity In oDerPartDef.Parameters
 			If oDPEnt.ReferencedEntity.Name = tName Then
@@ -242,7 +249,7 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		oDrivePart.Definition = oDerPartDef
 	Else
 		Dim oFeat As PartFeature = oDef.Features(oDef.SurfaceBodies.Item(1).CreatedByFeature.Name)
-		Call CreateListParams(oFeat.Profile.Parent)
+		tName = CreateListParams(oFeat.Profile.Parent)
 	End If
 	If String.IsNullOrEmpty(tName) Then Exit Sub
 	Try : oUPs("Толщина").Expression = tName : Catch
@@ -261,7 +268,7 @@ Private Function CreateListParams(ByVal oSketch As PlanarSketch) As String
 	Return tName.Substring(0, tName.IndexOf("("))
 End Function
 
-Private Sub CreatSheetScrew(oInvApp As Inventor.Application, oDoc As PartDocument)
+Private Sub CreatSheetScrew(oDoc As PartDocument)
 	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
 	Dim oUOM As UnitsOfMeasure = oDoc.UnitsOfMeasure
 	Dim oDocDef As PartComponentDefinition = oDoc.ComponentDefinition

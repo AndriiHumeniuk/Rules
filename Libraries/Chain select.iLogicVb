@@ -1,24 +1,29 @@
 ﻿Dim oDoc As Document = ThisDoc.Document
-
-Dim List() As String = {"ГОСТ 13568-97", "ISO 606:2004"}
-
-Dim ParamNameTame As String = "Stand"
 Dim oComp As PartComponentDefinition = oDoc.ComponentDefinition
-Dim oUPs As UserParameters = oComp.Parameters.UserParameters
-Dim oUP As UserParameters
+Dim oCustom As PropertySet = oDoc.PropertySets("Inventor User Defined Properties")
+Dim oUParams As UserParameters = oComp.Parameters.UserParameters
+Dim oUParam As UserParameter
 
-Try
-	Test = oUPs.Item(ParamNameTame).Value
-Catch
-	oUP = oUPs.AddByValue(ParamNameTame, List(1), UnitsTypeEnum.kTextUnits)
+Dim sList() As String = {"ГОСТ 13568-97", "ISO 606:2004" }
+Try : oUParam = oUParams("Stand")
+Catch : oUParam = oUParams.AddByExpression("Stand", sList(0), UnitsTypeEnum.kTextUnits)
 End Try
+For i As Integer = 0 To sList.Length - 1
+	sList(i) = "" & sList(i) & ""
+Next i
 
-MultiValue.List(ParamNameTame) = List
+Dim oExpList As ExpressionList = oUParam.ExpressionList
+Call oExpList.SetExpressionList(sList, false, 1)
+If oExpList.AllowCustomValues Then oExpList.AllowCustomValues = False
 
 Dim Стандарт As String
+Стандарт = InputListBox("Виберіть стандарт ланцюга", oUParam.ExpressionList, "", "Список", "Номер редакции:")
+If String.IsNullOrEmpty(Стандарт) Then Exit Sub
 
-Стандарт = InputListBox("Виберіть стандарт ланцюга", MultiValue.List("Stand"), Тема_Вибір, Title := "Список", ListName := "Номер редакции:")
+Try : oCustom("Standart").Value = Стандарт
+Catch : oCustom.Add(Стандарт, "Standart", kTextUnits)
+End Try
 
-iProperties.Value("Custom", "Standart") = Стандарт
+oDoc.Update()
 
 iLogicVb.RunExternalRule("Chain iProperties")

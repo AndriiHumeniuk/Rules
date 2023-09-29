@@ -11,6 +11,7 @@ Sub main
 		If oObj Is Nothing Then Exit Sub
 	Loop While Not TypeOf oObj Is DrawingSketch
 	Dim oTable As DrawingSketch = oObj
+	If oTable.Name = "Compas3D_Table" Then Exit Sub
 	Dim oTM As Transaction = oInvApp.TransactionManager.StartTransaction(oDDoc, "ClearCompasTable")
 	oTable.Edit()
 	Dim oList As IEnumerable(Of Inventor.TextBox) = oTable.TextBoxes.Cast(Of Inventor.TextBox)
@@ -18,7 +19,9 @@ Sub main
 		Dim xmlDoc As New System.Xml.XmlDocument
 		xmlDoc.LoadXml(oBox.FormattedText)
 		Dim sFontSize As String = xmlDoc.ChildNodes(0).Attributes("FontSize").Value
-		Dim sText As String = xmlDoc.ChildNodes(0).ChildNodes(0).Value
+		Dim sText As String
+		Try : sText = xmlDoc.ChildNodes(0).ChildNodes(0).Value
+		Catch : sText = oBox.Text : End Try
 		Dim oPoint As Point2d = oTG.CreatePoint2d(oBox.Origin.X, oBox.Origin.Y)
 		Dim oNewBox As Inventor.TextBox = oTable.TextBoxes.AddFitted(oPoint, sText)
 		If sText.Contains("Число зубьев") Then : sText = " Число зубів"
@@ -28,7 +31,7 @@ Sub main
 		ElseIf sText.Contains("Направление линии зуба") Then : sText = " Направлення лінії зуба"
 		ElseIf sText.Contains("Исходный контур") Then : sText = " Вихідний контур"
 		ElseIf sText.Contains("Коэффициент смещения") Then : sText = " Коефіціент зміщення"
-		ElseIf sText.Contains("Степень точности по ГОСТ 1643-81") Then : sText = " Степінь точності по ГОСТ 1643-81"
+		ElseIf sText.Contains("Степень точности по ГОСТ 1643-81") Then : sText = " Степінь точності по ГОСТ 1643-81" : oNewBox.WidthScale = 0.95
 		ElseIf sText.Contains("Длина общей нормали") Then : sText = " Довжина загальної нормалі"
 		ElseIf sText.Contains("Допуск на колебание длины") Then : sText = " Допуск на коливання довжини"
 		ElseIf sText.Contains("общей нормали") Then : sText = " загальної нормалі"
@@ -46,11 +49,11 @@ Sub main
 		ElseIf sText.Contains("шестерней") Then : sText = " шестерною"
 		ElseIf sText.Contains("радиальное") Then : sText = " радіальне"
 		ElseIf sText.Contains("биение") Then : sText = " биття"
-		ElseIf sText.Contains("зубчатого венца") Then : sText = " зубчастого вінця"
+		ElseIf sText.Contains("зубчатого венца") Then : sText = " зубчастого вінця" : oNewBox.WidthScale = 0.9
 		ElseIf sText.Contains("погрешность") Then : sText = " погрішність"
 		ElseIf sText.Contains("профиля зуба") Then : sText = " профіля зуба"
 		ElseIf sText.Contains("Отклонение") Then : sText = " Відхилення"
-		ElseIf sText.Contains("основного шага") Then : sText = " основного кроку"
+		ElseIf sText.Contains("основного шага") Then : sText = " основного кроку" : oNewBox.WidthScale = 0.95
 		ElseIf sText.Contains("Делительный диаметр") Then : sText = " Ділильний діаметр"
 		ElseIf sText.Contains("направления зуба") Then : sText = " направлення зуба"
 		ElseIf sText.Contains("базовой поверхности") Then : sText = " базової поверхні"
@@ -64,5 +67,6 @@ Sub main
 		oBox.Delete()
 	Next
 	oTable.ExitEdit()
+	oTable.Name = "Compas3D_Table"
 	oTM.End()
 End Sub

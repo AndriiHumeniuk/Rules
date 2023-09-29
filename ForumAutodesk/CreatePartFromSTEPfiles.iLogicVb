@@ -1,0 +1,71 @@
+﻿Imports System
+Imports System.Windows.Forms
+Sub main
+	oInvApp = ThisApplication
+	oProject = oInvApp.DesignProjectManager.ActiveDesignProject
+	Dim sPathFolder As String = GetPathFolder(oProject.WorkspacePath)
+	If String.IsNullOrEmpty(sPathFolder) Then Exit Sub
+	Dim sFiles() As String = IO.Directory.GetFiles(sPathFolder & "\", "*.STEP")
+	If sFiles.Length = 0 Then Exit Sub
+    Dim oPB As Inventor.ProgressBar
+	oPB = oInvApp.CreateProgressBar(False, sFiles.Length - 1, "Parts aanmaken uit STP files...")
+    oPB.Message = ("Even geduld...")
+	For i As Integer = 0 To sFiles.Length - 1
+		Dim oNewAsmName As String = CreateAssemblyFromSTEP(sFiles(i))
+		If String.IsNullOrEmpty(oNewAsmName) Then Continue For
+		Call CreatePartDrive(oNewAsmName, sFiles(i))
+		Call DeleteDontNeedFile(oNewAsmName)
+        oPB.Message = ("Bezig met " & i & " of " & sFiles.Length - 1 & ".")
+        oPB.UpdateProgress
+	Next i
+	oPB.Close()
+	Shell("explorer.exe /Open," & sPathFolder, vbNormalFocus)
+End Sub
+
+Dim oInvApp As Inventor.Application
+Dim sTemplate As String = "X:\CAD_3D\00 - Inventor standaard (NIET AANKOMEN)\Templates\Metric\Standard (mm).ipt"
+
+Private Function GetPathFolder(ByVal sPathStart As String) As String
+	Dim Dialog = New FolderBrowserDialog()
+	Dialog.SelectedPath = sPathStart
+	If DialogResult.OK = Dialog.ShowDialog() Then
+		Return Dialog.SelectedPath
+	End If
+	Return Nothing
+End Function
+
+Private Function CreateAssemblyFromSTEP(ByVal sPathFile As String) As String
+	Dim oDoc As Document = oInvApp.Documents.Open(sPathFile, False)
+	oDoc.Save()
+	oDoc.Close(True)
+	Return oDoc.FullFileName
+End Function
+
+Private Function CreatePartDrive(ByVal oNewAsmName As String, ByVal sPathFile As String)
+	If IO.Path.GetExtension(oNewAsmName) = ".ipt" Then
+		IO.Path.ChangeExtension(oNewAsmName, "SIMPLIFIED.ipt")
+	Else If IO.Path.GetExtension(oNewAsmName) = ".iam" Then	
+		Dim oPDoc As PartDocument = oInvApp.Documents.Add(kPartDocumentObject, sTemplate, False)
+		Dim oRefComps As ReferenceComponents = oPDoc.ComponentDefinition.ReferenceComponents	
+		Dim oDerivedAssemblyDef As DerivedAssemblyDefinition
+		oDerivedAssemblyDef = oRefComps.DerivedAssemblyComponents.CreateDefinition(oNewAsmName)
+		oDerivedAssemblyDef.DeriveStyle = DerivedComponentStyleEnum.kDeriveAsMultipleBodies
+		oDerivedAssemblyDef.IncludeAllTopLevelWorkFeatures = DerivedComponentOptionEnum.kDerivedExcludeAll
+		oDerivedAssemblyDef.IncludeAllTopLevelSketches = DerivedComponentOptionEnum.kDerivedExcludeAll
+		oDerivedAssemblyDef.IncludeAllTopLeveliMateDefinitions = DerivedComponentOptionEnum.kDerivedExcludeAll
+		oDerivedAssemblyDef.IncludeAllTopLevelParameters = DerivedComponentOptionEnum.kDerivedExcludeAll
+		Dim oDerivedAss As DerivedAssemblyComponent
+		oDerivedAss = oRefComps.DerivedAssemblyComponents.Add(oDerivedAssemblyDef)
+		Call oDerivedAss.BreakLinkToFile()
+		oPDoc.SaveAs(IO.Path.ChangeExtension(sPathFile, "SIMPLIFIED.ipt"), False)
+		oPDoc.Close(True)
+	End If
+End Function
+
+Private Function DeleteDontNeedFile(ByVal oNewAsmName As String)
+	If IO.Path.GetExtension(oNewAsmName) = ".iam" Then
+		Dim sDirectory As String = IO.Path.GetDirectoryName(oNewAsmName)
+		Try : IO.Directory.Delete(sDirectory, True)
+		Catch : MessageBox.Show(sDirectory, "Failed to delete folder!") : End Try
+	End If
+End Function

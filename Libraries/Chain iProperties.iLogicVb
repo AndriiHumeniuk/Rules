@@ -1,334 +1,291 @@
-﻿If iProperties.Volume <> 0 Then
-	Try
-		name = ThisDoc.FileName(False)
-		iProperties.Value("Project", "Part Number") = ""
-	Catch
-'		MessageBox.Show("Stock Number не обновился", "iLogic Gabarit")
-	End Try
-	
-	InventorVb.DocumentUpdate()
-	
-	Dim Стандарт As String
-	Dim FirstName As String
-	Dim FullName As String
-	Dim da_Xround As Double
-	Dim da_Long As Double
-	Dim da_mass As Double	
-	
-	Dim partName As String = "Ланцюг"
-	iProperties.Value("Project", "Revision Number") = partName
-	
-	Стандарт = iProperties.Value("Custom", "Standart")
-	
-	da_Xround = (Round(Parameter("da_X") / 2)) * 2
-	
-	da_Long = (Parameter("da_h2") * Parameter("da_X"))/1000
+﻿Dim oDoc As PartDocument = ThisDoc.Document
+If oDoc.File.FileSaveCounter = 0 Then Exit Sub
+Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
+Dim oUOfM As UnitsOfMeasure = oDoc.UnitsOfMeasure
+Dim oUParams As UserParameters = oDef.Parameters.UserParameters
+Dim name As String = System.IO.Path.GetFileNameWithoutExtension(oDoc.FullDocumentName)
+Dim oProject As PropertySet = oDoc.PropertySets("Design Tracking Properties")
+Dim oSummary As PropertySet = oDoc.PropertySets("Inventor Summary Information")
+Dim oCustom As PropertySet = oDoc.PropertySets("Inventor User Defined Properties")
+Dim oPNProp As Inventor.Property = oProject("Part Number")
+Dim oRNProp As Inventor.Property = oSummary("Revision Number")
+oPNProp.Value = ""
+oRNProp.Value = "Ланцюг"
+
+Dim Стандарт, FirstName, FullName As String
+Dim da_Xround, da_Long, da_mass As Double
+
+Try : Стандарт = oCustom("Standart").Value
+Catch : Exit Sub : End Try
+Dim da_h2 As Double = oUOfM.ConvertUnits(oUParams("da_h2").Value, kCentimeterLengthUnits, oUOfM.LengthUnits)
+Dim da_X As Double = oUParams("da_X").Value
+Dim da_k As Double = oUParams("da_k").Value
+Dim da_p As Double = oUOfM.ConvertUnits(oUParams("da_p").Value, kCentimeterLengthUnits, oUOfM.LengthUnits)
+
+da_Xround = (Round(da_X / 2)) * 2
+da_Long = (da_h2 * da_X)/1000
 
 '[Select ISO standart
-	If Стандарт = "ISO 606:2004" Then		
-		iProperties.Value("Project", "Catalog Web Link") = "ISO 606"
-		Select Case Parameter("da_h2")
-			Case 7.11
-				FirstName = "05B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 0.18
-					Case 2
-						da_mass = da_Long * 0.36
-					Case 3
-						da_mass = da_Long * 0.54
-				End Select
-			Case 8.26
-				FirstName = "06B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 0.41
-					Case 2
-						da_mass = da_Long * 0.78
-					Case 3
-						da_mass = da_Long * 1.18
-				End Select
-			Case 11.81
-				FirstName = "08B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 0.7
-					Case 2
-						da_mass = da_Long * 1.35
-					Case 3
-						da_mass = da_Long * 2.0
-				End Select
-			Case 14.73
-				FirstName = "010B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 0.95
-					Case 2
-						da_mass = da_Long * 1.85
-					Case 3
-						da_mass = da_Long * 2.8
-				End Select
-			Case 16.13
-				FirstName = "012B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 1.25
-					Case 2
-						da_mass = da_Long * 2.5
-					Case 3
-						da_mass = da_Long * 3.8
-				End Select
-			Case 21.08
-				FirstName = "016B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 2.7
-					Case 2
-						da_mass = da_Long * 5.4
-					Case 3
-						da_mass = da_Long * 8.0
-				End Select
-			Case 26.42
-				FirstName = "020B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 3.6
-					Case 2
-						da_mass = da_Long * 7.2
-					Case 3
-						da_mass = da_Long * 11.0
-				End Select
-			Case 33.4
-				FirstName = "024B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 6.7
-					Case 2
-						da_mass = da_Long * 13.5
-					Case 3
-						da_mass = da_Long * 21.0
-				End Select
-			Case 37.08
-				FirstName = "028B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 8.3
-					Case 2
-						da_mass = da_Long * 16.6
-					Case 3
-						da_mass = da_Long * 25.0
-				End Select
-			Case 42.29
-				FirstName = "032B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 10.5
-					Case 2
-						da_mass = da_Long * 21.0
-					Case 3
-						da_mass = da_Long * 32.0
-				End Select
-			Case 52.96
-				FirstName = "040B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 16.0
-					Case 2
-						da_mass = da_Long * 32.0
-					Case 3
-						da_mass = da_Long * 48.0
-				End Select
-			Case 63.88
-				FirstName = "048B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 25.0
-					Case 2
-						da_mass = da_Long * 50.0
-					Case 3
-						da_mass = da_Long * 75.0
-				End Select
-			Case 77.85
-				FirstName = "056B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 35.0
-					Case 2
-						da_mass = da_Long * 70.0
-					Case 3
-						da_mass = da_Long * 105.0
-				End Select
-			Case 90.17
-				FirstName = "064B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 60.0
-					Case 2
-						da_mass = da_Long * 120.0
-					Case 3
-						da_mass = da_Long * 180.0
-				End Select
-			Case 103.63
-				FirstName = "072B-" & Parameter("da_k") & ""
-				Select Case Parameter("da_k")
-					Case 1
-						da_mass = da_Long * 80.0
-					Case 2
-						da_mass = da_Long * 160.0
-					Case 3
-						da_mass = da_Long * 240.0
-				End Select
-		End Select
-		']
+If Стандарт = "ISO 606:2004" Then
+	oProject("Catalog Web Link").Value = "ISO 606"
+	Select Case da_h2
+		Case 7.11
+			FirstName = "05B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 0.18
+				Case 2 : da_mass = da_Long * 0.36
+				Case 3 : da_mass = da_Long * 0.54
+			End Select
+		Case 8.26
+			FirstName = "06B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 0.41
+				Case 2 : da_mass = da_Long * 0.78
+				Case 3 : da_mass = da_Long * 1.18
+			End Select
+		Case 11.81
+			FirstName = "08B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 0.7
+				Case 2 : da_mass = da_Long * 1.35
+				Case 3 : da_mass = da_Long * 2.0
+			End Select
+		Case 14.73
+			FirstName = "010B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 0.95
+				Case 2 : da_mass = da_Long * 1.85
+				Case 3 : da_mass = da_Long * 2.8
+			End Select
+		Case 16.13
+			FirstName = "012B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 1.25
+				Case 2 : da_mass = da_Long * 2.5
+				Case 3 : da_mass = da_Long * 3.8
+			End Select
+		Case 21.08
+			FirstName = "016B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 2.7
+				Case 2 : da_mass = da_Long * 5.4
+				Case 3 : da_mass = da_Long * 8.0
+			End Select
+		Case 26.42
+			FirstName = "020B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 3.6
+				Case 2 : da_mass = da_Long * 7.2
+				Case 3 : da_mass = da_Long * 11.0
+			End Select
+		Case 33.4
+			FirstName = "024B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 6.7
+				Case 2 : da_mass = da_Long * 13.5
+				Case 3 : da_mass = da_Long * 21.0
+			End Select
+		Case 37.08
+			FirstName = "028B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 8.3
+				Case 2 : da_mass = da_Long * 16.6
+				Case 3 : da_mass = da_Long * 25.0
+			End Select
+		Case 42.29
+			FirstName = "032B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 10.5
+				Case 2 : da_mass = da_Long * 21.0
+				Case 3 : da_mass = da_Long * 32.0
+			End Select
+		Case 52.96
+			FirstName = "040B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 16.0
+				Case 2 : da_mass = da_Long * 32.0
+				Case 3 : da_mass = da_Long * 48.0
+			End Select
+		Case 63.88
+			FirstName = "048B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 25.0
+				Case 2 : da_mass = da_Long * 50.0
+				Case 3 : da_mass = da_Long * 75.0
+			End Select
+		Case 77.85
+			FirstName = "056B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 35.0
+				Case 2 : da_mass = da_Long * 70.0
+				Case 3 : da_mass = da_Long * 105.0
+			End Select
+		Case 90.17
+			FirstName = "064B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 60.0
+				Case 2 : da_mass = da_Long * 120.0
+				Case 3 : da_mass = da_Long * 180.0
+			End Select
+		Case 103.63
+			FirstName = "072B-" & da_k & ""
+			Select Case da_k
+				Case 1 : da_mass = da_Long * 80.0
+				Case 2 : da_mass = da_Long * 160.0
+				Case 3 : da_mass = da_Long * 240.0
+			End Select
+	End Select
+	']
 '[Select GOST standart		
-	ElseIf Стандарт = "ГОСТ 13568-97" Then		
-		iProperties.Value("Project", "Catalog Web Link") = "ДСТУ ГОСТ 13568"
-		If Parameter("da_k") = 1 Then
-			Select Case Parameter("da_h2")
-				Case 7.5
-					FirstName = "ПР-" & Parameter("da_p") & "-4,6"
-					da_mass = da_Long * 0.2
-				Case 8.5
-					FirstName = "ПР-" & Parameter("da_p") & "-9,1"
-					da_mass = da_Long * 0.45
-				Case 10
-					Select Case da_b1
-						Case 2.4
-							FirstName = "ПР-" & Parameter("da_p") & "-10-1"
-							da_mass = da_Long * 0.3
-						Case 3.3
-							FirstName = "ПР-" & Parameter("da_p") & "-9"
-							da_mass = da_Long * 0.35
-						End Select
-				Case 11.8
-					Select Case da_b1
-						Case 5.4
-							FirstName = "ПР-" & Parameter("da_p") & "-18,2-1"
-							da_mass = da_Long * 0.65
-						Case 7.75
-							FirstName = "ПР-" & Parameter("da_p") & "-18,2"
-							da_mass = da_Long * 0.75
-						End Select
-				Case 14.8
-					Select Case da_b1
-						Case 6.48
-							FirstName = "ПР-" & Parameter("da_p") & "-23-1"
-							da_mass = da_Long * 0.8
-						Case 9.65
-							FirstName = "ПР-" & Parameter("da_p") & "-23"
-							da_mass = da_Long * 1.0
-						End Select
-				Case 18.2
-					FirstName = "ПР-" & Parameter("da_p") & "-31,8"
-					da_mass = da_Long * 1.9
-				Case 24.2
-					FirstName = "ПР-" & Parameter("da_p") & "-60"
-					da_mass = da_Long * 2.6
-				Case 30.2
-					FirstName = "ПР-" & Parameter("da_p") & "-89"
-					da_mass = da_Long * 3.8
-				Case 36.2
-					FirstName = "ПР-" & Parameter("da_p") & "-127"
-					da_mass = da_Long * 5.5
-				Case 42.4
-					FirstName = "ПР-" & Parameter("da_p") & "-172,4"
-					da_mass = da_Long * 7.5
-				Case 48.3
-					FirstName = "ПР-" & Parameter("da_p") & "-227"
-					da_mass = da_Long * 9.7
-				Case 60.4
-					FirstName = "ПР-" & Parameter("da_p") & "-354"
-					da_mass = da_Long * 16.0
-			End Select			
-		ElseIf Parameter("da_k") = 2 Then
-			Select Case Parameter("da_h2")
-				Case 11.8
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-31,8"
-					da_mass = da_Long * 1.4
-				Case 14.8
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-45,4"
-					da_mass = da_Long * 1.9
-				Case 18.08
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-64"
-					da_mass = da_Long * 2.9
-				Case 24.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-114"
-					da_mass = da_Long * 5.0
-				Case 30.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-177"
-					da_mass = da_Long * 7.3
-				Case 36.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-254"
-					da_mass = da_Long * 11.0
-				Case 42.24
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-344,8"
-					da_mass = da_Long * 14.4
-				Case 48.3
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-453,6"
-					da_mass = da_Long * 19.1
-			End Select
-		ElseIf Parameter("da_k") = 3 Then
-			Select Case Parameter("da_h2")
-				Case 11.8
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-45,4"
-					da_mass = da_Long * 2.0
-				Case 14.8
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-68,1"
-					da_mass = da_Long * 2.8
-				Case 18.08
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-96"
-					da_mass = da_Long * 4.3
-				Case 24.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-171"
-					da_mass = da_Long * 7.5
-				Case 30.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-265,5"
-					da_mass = da_Long * 11.0
-				Case 36.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-381"
-					da_mass = da_Long * 16.5
-				Case 42.24
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-517,2"
-					da_mass = da_Long * 21.7
-				Case 48.3
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-680,4"
-					da_mass = da_Long * 28.3
-			End Select
-		ElseIf Parameter("da_k") = 4 Then
-			Select Case Parameter("da_h2")
-				Case 18.08
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-128"
-					da_mass = da_Long * 5.75
-				Case 24.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-228"
-					da_mass = da_Long * 10.9
-				Case 30.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-355"
-					da_mass = da_Long * 14.7
-				Case 36.2
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-508"
-					da_mass = da_Long * 22.0
-				Case 48.3
-					FirstName = "" & Parameter("da_k") & "ПР-" & Parameter("da_p") & "-900"
-					da_mass = da_Long * 38.0
-			End Select
-		End If	
-	End If']
-		
-	If Parameter("da_X") = da_Xround And Стандарт = "ГОСТ 13568-97" Then
-		FullName = partName & " " & FirstName & "×" & Parameter("da_X") - 1 & " С"
-	ElseIf Parameter("da_X") > da_Xround And Стандарт = "ГОСТ 13568-97" Then
-		FullName = partName & " " & FirstName & "×" & Parameter("da_X") - 2 & " П/С"
-	ElseIf Parameter("da_X") = da_Xround And Стандарт = "ISO 606:2004" Then
-		FullName = partName & " " & FirstName & "×" & Parameter("da_X") - 1 & " E"
-	ElseIf Parameter("da_X") > da_Xround And Стандарт = "ISO 606:2004" Then
-		FullName = partName & " " & FirstName & "×" & Parameter("da_X") - 2 & " D/E"
-	End If
+ElseIf Стандарт = "ГОСТ 13568-97" Then
+	oProject("Catalog Web Link").Value = "ДСТУ ГОСТ 13568"
+	If da_k = 1 Then
+		Select Case da_h2
+			Case 7.5
+				FirstName = "ПР-" & da_p & "-4,6"
+				da_mass = da_Long * 0.2
+			Case 8.5
+				FirstName = "ПР-" & da_p & "-9,1"
+				da_mass = da_Long * 0.45
+			Case 10
+				Select Case da_b1
+					Case 2.4
+						FirstName = "ПР-" & da_p & "-10-1"
+						da_mass = da_Long * 0.3
+					Case 3.3
+						FirstName = "ПР-" & da_p & "-9"
+						da_mass = da_Long * 0.35
+					End Select
+			Case 11.8
+				Select Case da_b1
+					Case 5.4
+						FirstName = "ПР-" & da_p & "-18,2-1"
+						da_mass = da_Long * 0.65
+					Case 7.75
+						FirstName = "ПР-" & da_p & "-18,2"
+						da_mass = da_Long * 0.75
+					End Select
+			Case 14.8
+				Select Case da_b1
+					Case 6.48
+						FirstName = "ПР-" & da_p & "-23-1"
+						da_mass = da_Long * 0.8
+					Case 9.65
+						FirstName = "ПР-" & da_p & "-23"
+						da_mass = da_Long * 1.0
+					End Select
+			Case 18.2
+				FirstName = "ПР-" & da_p & "-31,8"
+				da_mass = da_Long * 1.9
+			Case 24.2
+				FirstName = "ПР-" & da_p & "-60"
+				da_mass = da_Long * 2.6
+			Case 30.2
+				FirstName = "ПР-" & da_p & "-89"
+				da_mass = da_Long * 3.8
+			Case 36.2
+				FirstName = "ПР-" & da_p & "-127"
+				da_mass = da_Long * 5.5
+			Case 42.4
+				FirstName = "ПР-" & da_p & "-172,4"
+				da_mass = da_Long * 7.5
+			Case 48.3
+				FirstName = "ПР-" & da_p & "-227"
+				da_mass = da_Long * 9.7
+			Case 60.4
+				FirstName = "ПР-" & da_p & "-354"
+				da_mass = da_Long * 16.0
+		End Select			
+	ElseIf da_k = 2 Then
+		Select Case da_h2
+			Case 11.8
+				FirstName = "" & da_k & "ПР-" & da_p & "-31,8"
+				da_mass = da_Long * 1.4
+			Case 14.8
+				FirstName = "" & da_k & "ПР-" & da_p & "-45,4"
+				da_mass = da_Long * 1.9
+			Case 18.08
+				FirstName = "" & da_k & "ПР-" & da_p & "-64"
+				da_mass = da_Long * 2.9
+			Case 24.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-114"
+				da_mass = da_Long * 5.0
+			Case 30.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-177"
+				da_mass = da_Long * 7.3
+			Case 36.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-254"
+				da_mass = da_Long * 11.0
+			Case 42.24
+				FirstName = "" & da_k & "ПР-" & da_p & "-344,8"
+				da_mass = da_Long * 14.4
+			Case 48.3
+				FirstName = "" & da_k & "ПР-" & da_p & "-453,6"
+				da_mass = da_Long * 19.1
+		End Select
+	ElseIf da_k = 3 Then
+		Select Case da_h2
+			Case 11.8
+				FirstName = "" & da_k & "ПР-" & da_p & "-45,4"
+				da_mass = da_Long * 2.0
+			Case 14.8
+				FirstName = "" & da_k & "ПР-" & da_p & "-68,1"
+				da_mass = da_Long * 2.8
+			Case 18.08
+				FirstName = "" & da_k & "ПР-" & da_p & "-96"
+				da_mass = da_Long * 4.3
+			Case 24.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-171"
+				da_mass = da_Long * 7.5
+			Case 30.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-265,5"
+				da_mass = da_Long * 11.0
+			Case 36.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-381"
+				da_mass = da_Long * 16.5
+			Case 42.24
+				FirstName = "" & da_k & "ПР-" & da_p & "-517,2"
+				da_mass = da_Long * 21.7
+			Case 48.3
+				FirstName = "" & da_k & "ПР-" & da_p & "-680,4"
+				da_mass = da_Long * 28.3
+		End Select
+	ElseIf da_k = 4 Then
+		Select Case da_h2
+			Case 18.08
+				FirstName = "" & da_k & "ПР-" & da_p & "-128"
+				da_mass = da_Long * 5.75
+			Case 24.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-228"
+				da_mass = da_Long * 10.9
+			Case 30.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-355"
+				da_mass = da_Long * 14.7
+			Case 36.2
+				FirstName = "" & da_k & "ПР-" & da_p & "-508"
+				da_mass = da_Long * 22.0
+			Case 48.3
+				FirstName = "" & da_k & "ПР-" & da_p & "-900"
+				da_mass = da_Long * 38.0
+		End Select
+	End If	
+End If']
 	
-	iProperties.Value("Summary", "Subject") = FirstName
-	iProperties.Value("Summary", "Title") = FullName
-	iProperties.Value("Custom", "Main_size") = da_Long
-	iProperties.Mass = da_mass
-	
-	InventorVb.DocumentUpdate()
+If da_X = da_Xround And Стандарт = "ГОСТ 13568-97" Then
+	FullName = oRNProp.Value & " " & FirstName & "×" & da_X - 1 & " С"
+ElseIf da_X > da_Xround And Стандарт = "ГОСТ 13568-97" Then
+	FullName = oRNProp.Value & " " & FirstName & "×" & da_X - 2 & " П/С"
+ElseIf da_X = da_Xround And Стандарт = "ISO 606:2004" Then
+	FullName = oRNProp.Value & " " & FirstName & "×" & da_X - 1 & " E"
+ElseIf da_X > da_Xround And Стандарт = "ISO 606:2004" Then
+	FullName = oRNProp.Value & " " & FirstName & "×" & da_X - 2 & " D/E"
 End If
+
+
+oSummary("Subject").Value = FirstName
+oSummary("Title").Value = FullName
+Try : oCustom("Main_size").Value = da_Long
+Catch : oCustom.Add(da_Long, "Main_size") : End Try
+oDef.MassProperties.Mass = da_mass
+
+oDoc.Update()

@@ -6,4 +6,4 @@ If oDoc.FileSaveCounter <> 0 Then
 		oDoc.PropertySets("Inventor Summary Information")("Title").Value = sName.Remove(0, sName.IndexOf(" ") + 1)
 	Catch :	End Try
 End If
-oDoc.Update()
+If oDoc.Dirty Then oDoc.Update()

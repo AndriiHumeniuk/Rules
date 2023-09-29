@@ -27,25 +27,38 @@ If oPartDoc.FileSaveCounter > 0 Then
 	Try : oUserParams("Ширина").Value = dMinSize : Catch : oUserParams.AddByValue("Ширина", dMinSize, oUOfM.LengthUnits) : End Try
 	
 	Dim PlateName_Length, PlateName_Width, PlateName_Thing As Double	
-	PlateName_Length = Round(Round(oUserParams("Довжина").Value, 4) / 1) * 1
-	PlateName_Width = Round(Round(oUserParams("Ширина").Value, 4) / 1) * 1	
+	PlateName_Length = Round(Round(oUserParams("Довжина").Value*10, 4) / 1) * 1
+	PlateName_Width = Round(Round(oUserParams("Ширина").Value*10, 4) / 1) * 1	
 	PlateName_Thing = Round(Round(oDef.Thickness.Value*10, 4) / 0.01) * 0.01
 	
 	oProject("Part Number").Value = name.Substring(0, name.IndexOf(" "))
-	oProject("Catalog Web Link").Value = "ДСТУ 8540"
-	oSummary(“Subject”).Value = "Б-ПН-" & PlateName_Thing & ""
-	oSummary(“Revision Number”).Value = "Лист"
+	Select Case dens
+	Case > 7800 'Лист
+		oProject("Catalog Web Link").Value = "ДСТУ 8540"
+		oSummary(“Subject”).Value = "Б-ПН-" & PlateName_Thing & ""
+		oSummary(“Revision Number”).Value = "Лист"	
+		If oInvSummary("Company").Value = "" Then
+			oSummary(“Title”).Value = oSummary(“Revision Number”).Value & " " & PlateName_Thing _
+											& "-" & PlateName_Length & "×" & PlateName_Width & ""
+		End If
+	Case < 1000 'Гума
+		oProject("Catalog Web Link").Value = "ГОСТ 7338-90"
+		oSummary(“Subject”).Value = "S" & PlateName_Thing & ""
+		oSummary(“Revision Number”).Value = "Гума"
+		If oInvSummary("Company").Value = "" Then
+			oSummary(“Title”).Value = oSummary(“Revision Number”).Value & " " & oSummary(“Subject”).Value _
+										& ", " & PlateName_Width & "×" & PlateName_Length & " мм"
+		End If
+	End Select
+	If oInvSummary("Company").Value <> "" Then
+		oSummary(“Title”).Value = name.Remove(0, name.IndexOf(" ") + 1)
+	End If
+	
 	Try : oCustom("Довжина").Value = "" & Round(oUOfM.ConvertUnits(oUserParams("Довжина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм"
 	Catch : oCustom.Add("" & Round(oUOfM.ConvertUnits(oUserParams("Довжина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм", "Довжина") : End Try
 	Try : oCustom("Ширина").Value = "" & Round(oUOfM.ConvertUnits(oUserParams("Ширина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм"
 	Catch : oCustom.Add("" & Round(oUOfM.ConvertUnits(oUserParams("Ширина").Value, kCentimeterLengthUnits, oUOfM.LengthUnits), 3) & " мм", "Ширина") : End Try
 		
-	If oInvSummary("Company").Value = "" Then
-		oSummary(“Title”).Value = "Лист " & PlateName_Thing & "-" & PlateName_Length & "×" & PlateName_Width & ""
-	Else
-		oSummary(“Title”).Value = name.Remove(0, name.IndexOf(" ") + 1)
-	End If
-	
 	Dim Area_Color As Double
 	Dim dVolume As Double
 	For Each oBody As SurfaceBody In oDef.SurfaceBodies

@@ -1,0 +1,212 @@
+﻿Sub main
+	oInvApp = ThisApplication
+	oTG = oInvApp.TransientGeometry
+	Dim oDoc As PartDocument = ThisDoc.Document
+	Dim oDef As PartComponentDefinition = oDoc.ComponentDefinition
+	If oDoc.FileSaveCounter = 0 Or oDoc.IsModifiable = False Or oDef.SurfaceBodies.Count <> 1 Then Exit Sub
+	
+	Dim oBody As SurfaceBody = oDef.SurfaceBodies(1)
+	Dim uom As UnitsOfMeasure = oDoc.UnitsOfMeasure
+	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
+	Dim combinedBodies As SurfaceBody = Nothing
+	Dim oActState As String = oDef.ModelStates.ActiveModelState.Name
+	oDef.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
+	
+	For Each oStat As ModelState In oDef.ModelStates
+		If oStat.Name = "Розгортка пера шнека" Then
+			oStat.Activate()
+			Exit For
+		End If
+	Next
+	
+	If oDef.Features(1).Type = ObjectTypeEnum.kReferenceFeatureObject Then
+		Call FindFeatures(oDef)
+	Else
+		Dim oFeat As PartFeature = oBody.CreatedByFeature
+		If oFeat.Type = ObjectTypeEnum.kSweepFeatureObject Then
+			Call FindSizeSweep(oFeat)
+		Else If oFeat.Type = ObjectTypeEnum.kThickenFeatureObject Then
+			Call FindSizeThickenFeature(oBody)
+		Else
+			Call FindSizeFeature(oBody)
+		End If
+	End If
+	Dim dThick As Double = GetThickFromMaxFace(oBody)
+	If dThick = 0 Then dThick = lengths(1)
+	oDef.ModelStates(oActState).Activate()
+	
+	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters
+	
+	Try : oUserParams("Довжина").Value = lengths(0) : Catch : oUserParams.AddByValue("Довжина", lengths(0), uom.LengthUnits) : End Try
+	Try : oUserParams("Висота").Value = lengths(1) : Catch : oUserParams.AddByValue("Висота", lengths(1), uom.LengthUnits) : End Try
+	Try : oUserParams("Ширина").Value = lengths(2) : Catch : oUserParams.AddByValue("Ширина", lengths(2), uom.LengthUnits) : End Try
+	Try : oUserParams("Толщина").Value = dThick : Catch : oUserParams.AddByValue("Толщина", dThick, uom.LengthUnits) : End Try
+	Area = (oBody.Volume(0.001) / dThick) : Area_Zag = lengths(1) * lengths(2)
+	Try : oUserParams("Area_1").Value = Area : Catch : oUserParams.AddByValue("Area_1", Area, "m m") : End Try
+	Try : oUserParams("Area_Zag_1").Value = Area_Zag : Catch : oUserParams.AddByValue("Area_Zag_1", Area_Zag, "m m") : End Try
+	
+	Dim oCustomProps As PropertySet = oDoc.PropertySets("Inventor User Defined Properties")
+	Try : oCustomProps("Max_size").Value = Round(lengths(0)*10, 3) : Catch : oCustomProps.Add(Round(lengths(0)*10, 3), "Max_size") : End Try
+	Try : oCustomProps("Min_size").Value = Round(lengths(1)*10, 3) : Catch : oCustomProps.Add(Round(lengths(1)*10, 3), "Min_size") : End Try
+	Try : oCustomProps("Mid_size").Value = Round(lengths(2)*10, 3) : Catch : oCustomProps.Add(Round(lengths(2)*10, 3), "Mid_size") : End Try
+			
+	iLogicVb.RunExternalRule("3_Selector of blanks")
+	
+	oDoc.Update()
+End Sub
+
+Dim oInvApp As Inventor.Application
+Dim oTG As TransientGeometry
+Dim lengths(3) As Double
+
+Private Function FindFeatures(oDef As PartComponentDefinition)
+	Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
+	If oDriveParts.Count >= 1 Then
+		Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
+		Dim oDerPartDef As DerivedPartDefinition = oDrivePart.Definition
+		Dim oGroundPart As PartDocument = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+		Dim oDerBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+		Dim oBodyName As String = oDerBodyName.Substring(0, oDerBodyName.IndexOf("::"))
+		Dim oGroundDef As PartComponentDefinition = oGroundPart.ComponentDefinition
+		For Each oBody As SurfaceBody In oGroundDef.SurfaceBodies
+			If oBody.Name = oBodyName Then
+				Dim oFeat As PartFeature = oGroundDef.Features(oBody.CreatedByFeature.Name)
+				If oFeat.Type = ObjectTypeEnum.kSweepFeatureObject Then
+					Call FindSizeSweep(oFeat)
+				Else If oFeat.Type = ObjectTypeEnum.kThickenFeatureObject Or _
+					oFeat.Type = ObjectTypeEnum.kRevolveFeatureObject Then
+					Call FindSizeThickenFeature(oBody)
+				Else
+					Call FindSizeFeature(oBody)
+				End If
+				Exit For
+			End If
+		Next
+	End If
+End Function
+
+Private Function FindSizeSweep(ByVal oSweep As SweepFeature)
+	Dim oPath As Path = oSweep.Path
+	Dim oParamMin, oParamMax As Point2d
+	Dim oRange As Box2d
+	Try
+		Dim oFace As Face = oSweep.StartFaces(1)
+		oRange = oFace.Evaluator.ParamRangeRect
+	Catch
+		Dim oProfile As Profile = oSweep.Profile
+		oRange = oProfile(1)(1).Curve.Evaluator.RangeBox	
+	End Try
+	oParamMin = oRange.MinPoint
+	oParamMax = oRange.MaxPoint	
+    Dim oCurve As Object
+	Dim oCurveEval As CurveEvaluator
+    Dim MinParam, MaxParam, length, TotalLength As Double
+    For i As Integer = 1 To oPath.Count
+		Try
+	        oCurveEval = oPath(i).Curve.Evaluator
+	        Call oCurveEval.GetParamExtents(MinParam, MaxParam)
+	        Call oCurveEval.GetLengthAtParam(MinParam, MaxParam, length)
+	        TotalLength += length
+		Catch : End Try
+    Next i
+	lengths(2) = oParamMax.X - oParamMin.X
+	lengths(1) = oParamMax.Y - oParamMin.Y
+	lengths(0) = TotalLength
+End Function
+
+Private Function GetMinBox(ByVal oBody As SurfaceBody)
+	Dim transBRep As TransientBRep = oInvApp.TransientBRep
+	If combinedBodies Is Nothing Then
+		combinedBodies = transBRep.Copy(oBody)
+	Else
+		transBRep.DoBoolean(combinedBodies, oBody, BooleanTypeEnum.kBooleanTypeUnion)
+	End If
+	Return combinedBodies.OrientedMinimumRangeBox
+End Function
+
+Private Function FindSizeFeature(ByVal oBody As SurfaceBody)
+	Dim oProfile As Inventor.Profile = oBody.CreatedByFeature.Profile
+	Dim oSketch As PlanarSketch = oProfile.Parent
+	Dim oWPlane As WorkPlane
+	Do
+		Try : oWPlane = oSketch.PlanarEntity
+		Catch :	oSketch = oSketch.ReferencedEntity : End Try		
+	Loop While oWPlane Is Nothing
+	Call GetLengthOnVector(oWPlane.Plane.Normal.AsVector(), GetMinBox(oBody))
+End Function
+
+Private Function FindSizeThickenFeature(ByVal oBody As SurfaceBody)
+	Dim minBox As OrientedBox = GetMinBox(oBody)
+	Dim oMaxFace As Face = GetMaxFace(oBody.Faces)
+	If oMaxFace Is Nothing Then Return Nothing
+	If oMaxFace.SurfaceType = SurfaceTypeEnum.kCylinderSurface Then
+		Dim oCylinder As Cylinder = oMaxFace.Geometry
+		Call GetLengthOnVector(oCylinder.AxisVector.AsVector(), minBox)
+	Else
+		Dim dSize As New List(Of Double)
+		dSize.AddRange({minBox.DirectionOne.Length, minBox.DirectionTwo.Length, minBox.DirectionThree.Length})
+		dSize.Sort()
+		lengths(0) = dSize(2)
+		lengths(1) = dSize(1)
+		lengths(2) = dSize(0)
+	End If
+End Function
+
+Private Function GetLengthOnVector(ByVal oVector As Vector, ByVal minBox As OrientedBox)
+	' (0)L/MAX, (1)H/MID, (2)W/MIN
+	If minBox.DirectionOne.IsParallelTo(oVector, 0.001) Then
+		lengths(0) = minBox.DirectionOne.Length
+		If minBox.DirectionTwo.Length <= minBox.DirectionThree.Length Then
+			lengths(2) = minBox.DirectionTwo.Length
+			lengths(1) = minBox.DirectionThree.Length
+		Else
+			lengths(2) = minBox.DirectionThree.Length
+			lengths(1) = minBox.DirectionTwo.Length
+		End If
+	Else If minBox.DirectionTwo.IsParallelTo(oVector, 0.001) Then
+		lengths(0) = minBox.DirectionTwo.Length
+		If minBox.DirectionOne.Length <= minBox.DirectionThree.Length Then
+			lengths(2) = minBox.DirectionOne.Length
+			lengths(1) = minBox.DirectionThree.Length
+		Else
+			lengths(2) = minBox.DirectionThree.Length
+			lengths(1) = minBox.DirectionOne.Length
+		End If
+	Else If minBox.DirectionThree.IsParallelTo(oVector, 0.001) Then
+		lengths(0) = minBox.DirectionThree.Length
+		If minBox.DirectionTwo.Length <= minBox.DirectionOne.Length Then
+			lengths(2) = minBox.DirectionTwo.Length
+			lengths(1) = minBox.DirectionOne.Length
+		Else
+			lengths(2) = minBox.DirectionOne.Length
+			lengths(1) = minBox.DirectionTwo.Length
+		End If
+	End If
+End Function
+
+Private Function GetThickFromMaxFace(ByVal oBody As SurfaceBody) As Double
+	Dim oMaxFace As Face = GetMaxFace(oBody.Faces)
+	If oMaxFace Is Nothing Then Return Nothing
+	Dim origin As Inventor.Point = oMaxFace.PointOnFace
+	Dim pt(2) As Double
+	pt(0) = origin.X : pt(1) = origin.Y : pt(2) = origin.Z
+	Dim n(2) As Double
+	Call oMaxFace.Evaluator.GetNormalAtPoint(pt, n)
+	Dim normal As Inventor.UnitVector = oInvApp.TransientGeometry.CreateUnitVector(-n(0), -n(1), -n(2))
+	Dim objects As ObjectsEnumerator
+	Dim pts As ObjectsEnumerator
+	Call oBody.FindUsingRay(origin, normal, 0.001, objects, pts, True)	
+	If objects.Count = 1 Then Return Nothing
+	Return oInvApp.MeasureTools.GetMinimumDistance(origin, objects.Item(2))
+End Function
+
+Private Function GetMaxFace(ByVal oFaces As Faces) As Face
+	Dim dArea(oFaces.Count) As Double
+	For i As Integer = 1 To oFaces.Count
+		dArea(i-1) = oFaces(i).Evaluator.Area
+	Next i
+	For i As Integer = 1 To oFaces.Count
+		If oFaces(i).Evaluator.Area = dArea.Max Then Return oFaces(i)
+	Next i
+	Return Nothing
+End Function

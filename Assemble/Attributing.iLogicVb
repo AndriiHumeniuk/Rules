@@ -121,46 +121,47 @@ Public Sub CreatAtributs(oInvApp As Inventor.Application, oOcc As ComponentOccur
 				Dim oSketch As PlanarSketch = oFeat.Profile.Parent			
 				'[	Autosize thickness	
 				Dim oBody As SurfaceBody = sheetDef.SurfaceBodies.Item(1)
-				Dim oArray As New List(Of Double)
-				Dim oValue As New List(Of Double)
-				Dim ListFace As New List(Of Integer)
-				Dim IndexFace As Integer = 1
-				For Each oFace As Face In oBody.Faces
-					oArray.Add(oFace.Evaluator.Area)
-				Next
-				oValue = oArray.FindAll(Function(t) t > oArray.Max - (oArray.Max * 0.05))
-				For Each Size In oArray
-					If oValue.Contains(Size) Then
-						ListFace.Add(IndexFace)
-					End If
-					IndexFace = IndexFace +1
-				Next
-				Dim oResule As New List(Of Double)
-				Dim oMTs As MeasureTools = oInvApp.MeasureTools
-				If ListFace.Count >= 2 And ListFace.Count < 4 Then
-					oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
-				ElseIf ListFace.Count >= 4 Then
-					If ListFace.Count >= 4 And ListFace.Count < 6 Then
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
-					ElseIf ListFace.Count >= 6 And ListFace.Count < 8 Then
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
-					ElseIf ListFace.Count >= 8 Then
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(6))))
-						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(7))))
-					End If
-				End If']
-				Dim oThick As Double = (Round(oResule.Min, 3))
+'				Dim oArray As New List(Of Double)
+'				Dim oValue As New List(Of Double)
+'				Dim ListFace As New List(Of Integer)
+'				Dim IndexFace As Integer = 1
+'				For Each oFace As Face In oBody.Faces
+'					oArray.Add(oFace.Evaluator.Area)
+'				Next
+'				oValue = oArray.FindAll(Function(t) t > oArray.Max - (oArray.Max * 0.05))
+'				For Each Size In oArray
+'					If oValue.Contains(Size) Then
+'						ListFace.Add(IndexFace)
+'					End If
+'					IndexFace = IndexFace +1
+'				Next
+'				Dim oResule As New List(Of Double)
+'				Dim oMTs As MeasureTools = oInvApp.MeasureTools
+'				If ListFace.Count >= 2 And ListFace.Count < 4 Then
+'					oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+'				ElseIf ListFace.Count >= 4 Then
+'					If ListFace.Count >= 4 And ListFace.Count < 6 Then
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+'					ElseIf ListFace.Count >= 6 And ListFace.Count < 8 Then
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
+'					ElseIf ListFace.Count >= 8 Then
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(1))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(2))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(3))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(4))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(5))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(6))))
+'						oResule.Add(oMTs.GetMinimumDistance(oBody.Faces.Item(ListFace.Item(0)), oBody.Faces.Item(ListFace.Item(7))))
+'					End If
+'				End If']
+'				Dim oThick As Double = (Round(oResule.Min, 3))
+				Dim oThick As Double = GetThickMaxFace(oInvApp, oBody)
 				If oThick = Round(oFeat.Parameters.Item(1).Value, 5) Then
 					tName = oFeat.Parameters.Item(1).Name
 				Else
@@ -209,6 +210,27 @@ Public Sub CreatAtributs(oInvApp As Inventor.Application, oOcc As ComponentOccur
 	End If']
 	oSet.Clear()
 End Sub
+
+Private Function GetThickMaxFace(ByVal oInvApp As Inventor.Application, ByVal oBody As SurfaceBody) As Double
+	Dim dArea(oBody.Faces.Count) As Double
+	For i As Integer = 1 To oBody.Faces.Count
+		dArea(i-1) = oBody.Faces(i).Evaluator.Area
+	Next i
+	Dim oMaxFace As Face
+	For i As Integer = 1 To oBody.Faces.Count
+		If oBody.Faces(i).Evaluator.Area = dArea.Max Then oMaxFace = oBody.Faces(i) : Continue For
+	Next i
+	Dim origin As Inventor.Point = oMaxFace.PointOnFace
+	Dim pt(2) As Double
+	pt(0) = origin.X : pt(1) = origin.Y : pt(2) = origin.Z
+	Dim n(2) As Double
+	Call oMaxFace.Evaluator.GetNormalAtPoint(pt, n)
+	Dim normal As Inventor.UnitVector = oInvApp.TransientGeometry.CreateUnitVector(-n(0), -n(1), -n(2))
+	Dim objects As ObjectsEnumerator
+	Dim pts As ObjectsEnumerator
+	Call oBody.FindUsingRay(origin, normal, 0.001, objects, pts, True)
+	Return oInvApp.MeasureTools.GetMinimumDistance(origin, objects.Item(2))
+End Function
 
 Private Function GetParentFeature(oNodes As BrowserNodesEnumerator, sName As String) As PartFeature
 	Dim oFeat As PartFeature

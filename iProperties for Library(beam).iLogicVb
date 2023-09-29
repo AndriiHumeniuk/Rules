@@ -15,9 +15,7 @@ If WebLink = "ДСТУ 4747" Or WebLink = "ДСТУ 4738" Then
 Else
 	L_size = oUOfM.ConvertUnits(oUsParams("B_L").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
 End If
-If L_size = 0 Then
-	L_size = Measure.ExtentsHeight
-End If
+If L_size = 0 Then L_size = Measure.ExtentsHeight
 Dim sName As String = System.IO.Path.GetFileNameWithoutExtension(oDoc.FullFileName)	
 If oDesTrackProps("Part Number").Value <> sName.Substring(0, sName.IndexOf(" ")) Then
 	oDesTrackProps("Part Number").Value = sName.Substring(0, sName.IndexOf(" "))
@@ -31,6 +29,7 @@ Dim oDocMat As MaterialAsset = oDoc.ActiveMaterial
 Dim sMatName As String = oDocMat.DisplayName
 Dim MatDensity As AssetValue = oDocMat.PhysicalPropertiesAsset.Item("structural_Density")
 Dim oDensity As Double = MatDensity.Value
+Dim oFeat As PartFeature = oDocDef.SurfaceBodies(1).CreatedByFeature
 
 Dim Round As Inventor.Property
 Try : Round = oInvUserInfo("Round_y") : Catch :	Round = oInvUserInfo.Add(1,"Round_y") :	End Try
@@ -72,16 +71,5 @@ Try : oInvUserInfo("Stren_steel").Value = sMatName.Substring(0, sMatName.IndexOf
 Catch : oInvUserInfo.Add(sMatName.Substring(0, sMatName.IndexOf(" ")), "Stren_steel") : End Try 'Клас міцності
 Try : oInvUserInfo("Stan_steel").Value = sMatName.Remove(0, sMatName.IndexOf(" ") + 1)
 Catch : oInvUserInfo.Add(sMatName.Remove(0, sMatName.IndexOf(" ") + 1), "Stan_steel") : End Try 'Стандарт матеріала
-Dim Area_Part As Double
-If WebLink = "ДСТУ EN 10210-2" Or WebLink = "ДСТУ EN 10216-1" Or WebLink = "ДСТУ ISO 1127" Or WebLink = "ДСТУ 8936" Or WebLink = "ДСТУ 8938" _
-	Or WebLink = "ДСТУ 8939" Or WebLink = "ДСТУ 8940" Or WebLink = "ДСТУ 8943" Or WebLink = "ДСТУ Б В.2.6-8-95" Then
-	If Math.Round(Measure.ExtentsWidth, 2) <> Math.Round(Measure.ExtentsLength, 2) Then
-		Area_Part = ((Parameter("G_H") -(Parameter("G_IR") * 2)) * 2 + (Parameter("G_W") -(Parameter("G_IR") * 2)) * 2) + (PI * Parameter("G_IR") * 2)
-	Else
-		Area_Part = PI * Parameter("G_H")
-	End If
-Else
-	Area_Part = iProperties.Area / Measure.ExtentsHeight
-End If
-Try : oInvUserInfo("Area_Color").Value = Math.Round((Measure.ExtentsHeight * Area_Part) / 1000000, 3)
-Catch : oInvUserInfo.Add(Math.Round((Measure.ExtentsHeight * Area_Part) / 1000000, 3), "Area_Color") : End Try
+Try : oInvUserInfo("Area_Color").Value = Math.Round((L_size * oFeat.Profile.RegionProperties.Perimeter) / 100000, 3)
+Catch : oInvUserInfo.Add(Math.Round((L_size * oFeat.Profile.RegionProperties.Perimeter) / 1000000, 3), "Area_Color") : End Try
