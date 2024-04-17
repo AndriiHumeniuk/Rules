@@ -52,8 +52,8 @@
 	End If
 	Logger.Info(" Z0(X) = " & Round(z0_X, 5) & " cm")
 	Logger.Info(" Z0(Y) = " & Round(z0_Y, 5) & " cm")
-	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm4")
-	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm4")
+	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
+	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
 '	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
 	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
 '	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
@@ -68,11 +68,11 @@
 	oRegProps.PrincipalMomentsOfInertia(dIx, dIy, dIz)
 	Logger.Info(" Ix = " & Round(dIx, 5) & " cm^4")
 	Logger.Info(" Iy = " & Round(dIy, 5) & " cm^4")
-'	Logger.Info(" Iz = " & Round(dIz, 5) & " cm4")
+'	Logger.Info(" Iz = " & Round(dIz, 5) & " cm^4")
 	oRegProps.RadiusOfGyration(dKxx, dKyy, dKzz)
 	Logger.Info(" Kxx = " & Round(dKxx, 5) & " cm")
 	Logger.Info(" Kyy = " & Round(dKyy, 5) & " cm")
-'	Logger.Info(" Kzz = " & Round(dKzz, 5) & " cm3")
+'	Logger.Info(" Kzz = " & Round(dKzz, 5) & " cm^3")
 	Logger.Info(" Rotation Angle = " & Round(oRegProps.RotationAngle, 5) & " degr")
 End Sub
 
