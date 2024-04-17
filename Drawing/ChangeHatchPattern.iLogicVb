@@ -1,0 +1,25 @@
+﻿Dim oDDoc As DrawingDocument = TryCast(ThisDoc.Document, DrawingDocument)
+If oDDoc Is Nothing Then Exit Sub
+For Each oView As DrawingView In oDDoc.ActiveSheet.DrawingViews
+	For Each oHanth As DrawingViewHatchRegion In oView.HatchRegions
+		Dim oDoc As Document = oHanth.SurfaceBody.ComponentDefinition.Document
+		Select Case oDoc.ActiveMaterial("physmat_Type").Value
+'		Case "physmat_metal"
+'			oHanth.ByMaterial = False
+'			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 31")
+		Case "physmat_concrete"
+			oHanth.ByMaterial = False
+			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 35")
+		Case "physmat_glass"
+			oHanth.ByMaterial = False
+			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("CUST05")
+		Case "physmat_plastic"
+			oHanth.ByMaterial = False
+			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 37")
+'			Select Case oDoc.ActiveMaterial("physmat_Keywords").Value
+'			Case "Гума"
+'			Case Else
+'			End Select
+		End Select
+	Next
+Next

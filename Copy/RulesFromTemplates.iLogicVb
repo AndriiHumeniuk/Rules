@@ -8,12 +8,12 @@ Sub Main
 		If  Not oPDoc.IsModifiable Or oPDoc.ComponentDefinition.BOMStructure = BOMStructureEnum.kPurchasedBOMStructure _
 			Or oPDoc.ComponentDefinition.BOMStructure = BOMStructureEnum.kPhantomBOMStructure Then Exit Sub
 		If oDoc.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then
-			Dim oSMDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
+			Dim oSMDoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
 			Call CopyRules(oSMDoc, oPDoc)
 			Call CopyEventsPropSet(oSMDoc, oPDoc)
 			oSMDoc.Close()
 		Else
-			Dim oPartDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
+			Dim oPartDoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
 			Call CopyRules(oPartDoc, oPDoc)
 			Call CopyEventsPropSet(oPartDoc, oPDoc)
 			oPartDoc.Close()
@@ -24,10 +24,10 @@ Sub Main
 		Dim oPBar As Inventor.ProgressBar = oInvApp.CreateProgressBar(False, oAsmDoc.AllReferencedDocuments.Count, "Copy ryles...")
 		Dim i As Integer = 1
 		oPBar.Message = "Loading..."
-		Dim oPartDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
-		Dim oSMDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
-		Dim oADoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\КТВ_Сборка.iam", False) 'AssemblyDocument
-		Dim oFrameDoc As Document = oDocs.Open("\\Comp59\Work SP\Templates\ru-RU\OldTemplates\ШаблонПрофіля.ipt", False) 'Frame Generator PartDocument
+		Dim oPartDoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\КТВ_Деталь.ipt", False) 'PartDocument
+		Dim oSMDoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\КТВ_ЛистМат.ipt", False) 'SheetMetalDocument
+		Dim oADoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\КТВ_Сборка.iam", False) 'AssemblyDocument
+		Dim oFrameDoc As Document = oDocs.Open("D:\Work\Work 05.07.2023\Templates\ru-RU\OldTemplates\ШаблонПрофіля.ipt", False) 'Frame Generator PartDocument
 		Dim oTM As Transaction = oInvApp.TransactionManager.StartTransaction(oAsmDoc, "CopyRulesFromTemplates")
 		Call CopyRules(oADoc, oAsmDoc)
 		Call CopyEventsPropSet(oADoc, oAsmDoc)

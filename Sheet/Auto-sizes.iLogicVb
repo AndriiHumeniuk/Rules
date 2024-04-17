@@ -28,7 +28,7 @@ Dim RevNumb As String
 PlateName = iProperties.Value(“Summary”, “Title”)
 PlateName_Довж = Parameter("Довжина")
 PlateName_Шир = Parameter("Ширина")
-PlateName_Товщ = Parameter("Толщина")
+PlateName_Товщ = Parameter("Товщина")
 
 inc_Довж = 1 ' rounding increment ( .125, .25, .5, etc)
 PlateName_Length = Round(Round(PlateName_Довж,4) / inc_Довж) * inc_Довж
@@ -50,7 +50,7 @@ iProperties.Value("Custom", "Area_Color") = Round(Area_Color, 3)
 
 iProperties.Value("Custom", "Mass_size") = Round((iProperties.Volume * dens) / 1000000, 2)
 iProperties.Value("Custom", "Main_size") = Round(Parameter("Area_1")/ 1000000, 3)
-iProperties.Value("Custom", "Stren_steel") = mat.Substring(0,mat.IndexOf(" ")) 'Клас міцності
-iProperties.Value("Custom", "Stan_steel") = mat.Remove(0, mat.IndexOf(" ") + 1) 'Стандарт матеріала
+iProperties.Value("Custom", "Stren_steel") = oPartMat.PhysicalPropertiesAsset.DisplayName 'Клас міцності
+iProperties.Value("Custom", "Stan_steel") = oPartMat("physmat_Comments").Value 'Стандарт матеріала
 
 InventorVb.DocumentUpdate()

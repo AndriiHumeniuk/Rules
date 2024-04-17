@@ -1,5 +1,5 @@
 ﻿Sub main
-	Dim oInvApp As Inventor.Application = ThisApplication
+	oInvApp = ThisApplication
 	Dim oDDoc As DrawingDocument = oInvApp.ActiveDocument
 	Dim oTM As TransactionManager = oInvApp.TransactionManager
 	Dim newTM As Transaction = oTM.StartTransaction(oDDoc, "ChangeCurvesColor")
@@ -15,6 +15,8 @@
 	Next
 	newTM.End()
 End Sub
+
+Dim oInvApp As Inventor.Application = ThisApplication
 
 Private Function ChangeCutCurvesView(ByVal oView As DrawingView, ByVal oOccs As ComponentOccurrences)
 	For Each oOcc As ComponentOccurrence In oOccs
@@ -32,7 +34,7 @@ Private Function ChangeCutCurvesView(ByVal oView As DrawingView, ByVal oOccs As 
 '							Next
 '							oView.Parent.ChangeLayer(oColl,oLayer)
 							On Error Resume Next
-							oCurve.Color = ThisApplication.TransientObjects.CreateColor(255, 0, 0) 'Red
+							oCurve.Color = oInvApp.TransientObjects.CreateColor(255, 0, 0) 'Red
 							oCurve.LineWeight = 0.018
 						Next
 					End If
@@ -51,7 +53,7 @@ Private Function ChangePhantomCurvesView(oInvApp As Inventor.Application, ByVal 
 			Dim oCurves As DrawingCurvesEnumerator = oView.DrawingCurves(oOcc)
 			For Each oCurve As DrawingCurve In oCurves
 				On Error Resume Next
-				oCurve.Color = ThisApplication.TransientObjects.CreateColor(0, 131, 143) 'Cyan
+				oCurve.Color = oInvApp.TransientObjects.CreateColor(0, 131, 143) 'Cyan
 				oCurve.LineWeight = 0.018
 			Next
 			Continue For

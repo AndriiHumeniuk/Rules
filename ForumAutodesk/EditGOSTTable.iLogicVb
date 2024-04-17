@@ -1,0 +1,83 @@
+﻿Imports System.Diagnostics
+Imports System.Threading.Tasks
+' © Chernikov, KhNADU_IKG, 2023-0309. Upd: 2023-1212, 2024-0310
+Public Sub Main() ' EditPartList() for EN & RU Loc
+	Dim SW As Stopwatch = New Stopwatch
+	SW.Start()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oTM As Transaction
+	Dim oDDoc As DrawingDocument = TryCast(oInvApp.ActiveDocument, DrawingDocument)
+	If oDDoc Is Nothing Then Exit Sub
+	Dim oCurSh As Sheet = oDDoc.ActiveSheet
+	Dim iQtyTable As Integer = oCurSh.CustomTables.Count
+	If iQtyTable < 1 Then Exit Sub
+	Dim oShrCond, oShrNorm As String
+	Dim dXPosT As Double
+	Dim nmSect As Integer
+	Select Case oCurSh.Application.LanguageName
+	Case "Russian"
+		oShrCond = "Сжатый текст (ГОСТ)"
+		oShrNorm = "PL обычный текст (ГОСТ)"
+	Case "English"
+		oShrCond = "Condensed Text (GOST)"
+		oShrNorm = "PL Regular Text (GOST)"
+	Case Else
+		Debug.Print ("Unknown Language")
+		Exit Sub
+	End Select
+	For i = 1 To iQtyTable
+		If Not oCurSh.CustomTables(i).AttributeSets.NameIsUsed("com_autodesk_MSD_AIS_Gost") Then Continue For
+		Dim oBOMTable As CustomTable = oCurSh.CustomTables(i)
+		Try
+			oTM = oInvApp.TransactionManager.StartTransaction(oDDoc, "EditPartsListFromGOST")
+			Dim oTxtStls As TextStylesEnumerator = oDDoc.StylesManager.TextStyles
+			'oDDoc.StylesManager.FeatureControlFrameStyles.Item(7).TrailingZeroDisplay = False
+			oBOMTable.ColumnHeaderTextStyle = oTxtStls(oShrCond) ' 3
+			With oBOMTable.ColumnHeaderTextStyle
+				.FontSize = 0.3
+				.WidthScale = 0.6
+			End With
+			oBOMTable.DataTextStyle = oTxtStls(oShrNorm) ' 1
+			With oBOMTable.DataTextStyle
+				.FontSize = 0.3
+				.WidthScale = 0.85
+			End With
+			With oBOMTable.Columns
+				.Item(1).Title = "Фор- мат"
+				.Item(2).Title = "Зо- на"
+				.Item(1).Width = 0.6
+				.Item(2).Width = 0.6
+				.Item(3).Width = 0.8
+				.Item(4).Width = 7.0
+				.Item(5).Width = 6.3
+				.Item(6).Width = 1.0
+				.Item(7).Width = 2.2
+			End With
+			For i1 = 1 To oBOMTable.Rows.Count
+				If oBOMTable.Rows(i1).Height = 0.6 Then Continue For
+				oBOMTable.Rows(i1).Height = 0.6
+			Next
+			Try : nmSect = oBOMTable.NumberOfSections
+			Catch : nmSect = Ceil(oBOMTable.Rows.Count / oBOMTable.MaximumRows) : End Try
+			If oBOMTable.Rows.Count > 29 Then
+				If oBOMTable.WrapLeft Then : dXPosT = 0.5
+				Else : dXPosT = 0.5 + 18.5 * nmSect
+				End If
+			Else
+				dXPosT = 19
+			End If
+			oBOMTable.Position = oInvApp.TransientGeometry.CreatePoint2d( _
+								oCurSh.Width - dXPosT, oCurSh.TitleBlock.RangeBox.MaxPoint.Y + _
+								(oBOMTable.RangeBox.MaxPoint.Y - oBOMTable.RangeBox.MinPoint.Y))
+			oBOMTable.Update
+			oCurSh.Update
+			oTM.End()
+		Catch ex As Exception
+			MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			oTM.Abort()
+		End Try
+		Exit For
+	Next
+	SW.Stop()
+	MessageBox.Show("Час виконання = " & SW.ElapsedMilliseconds & " milliseconds", "Таймер")
+End Sub

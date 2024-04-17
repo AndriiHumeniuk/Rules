@@ -1,12 +1,13 @@
-﻿If iProperties.Mass <> 0 Then
-   Try
-		Dim Subj As String
-		Subj = iProperties.Value(“Summary”, “Subject”)
-		iProperties.Value("Custom", "Stren_steel") = Subj.Remove(0, Subj.IndexOf("-") + 1) 'Клас міцності
-		iProperties.Value("Custom", "Stan_steel") = ""
-	Catch
-'		MessageBox.Show("Stock Number не обновился", "iLogic Gabarit")
-   End Try
+﻿Dim oPartDoc As PartDocument = ThisDoc.Document
+If oPartDoc.FileSaveCounter <> 0 Then
+	Dim oPartMat As MaterialAsset = oPartDoc.ActiveMaterial
+	Dim oCustom As PropertySet = oPartDoc.PropertySets("Inventor User Defined Properties")
+	Dim sStren, sStan As String
+	sStren = oPartMat.PhysicalPropertiesAsset.DisplayName
+	sStan = oPartMat("physmat_Comments").Value
+	Try : oCustom("Stren_steel").Value = sStren 'Клас міцності
+	Catch : oCustom.Add(sStren, "Stren_steel") : End Try
+	Try : oCustom("Stan_steel").Value = sStan 'Стандарт матеріала
+	Catch : oCustom.Add(sStan, "Stan_steel") : End Try
 End If
-
-InventorVb.DocumentUpdate()
+oPartDoc.Update()

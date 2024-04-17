@@ -1,0 +1,14 @@
+﻿Dim xCharArray() As Char = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray
+Dim xNoArray() As Char = "0123456789".ToCharArray
+Dim xGenerator As System.Random = New System.Random()
+Dim xStr As String = String.Empty
+
+While xStr.Length < 10
+	If xGenerator.Next(0, 2) = 0 Then
+		xStr &= xCharArray(xGenerator.Next(0, xCharArray.Length))	
+	Else 
+		xStr &= xNoArray(xGenerator.Next(0, xNoArray.Length))	
+	End If
+End While
+
+MessageBox.Show(xStr, "New Number")

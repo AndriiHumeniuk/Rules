@@ -1,0 +1,113 @@
+﻿Imports System
+Imports System.Windows.Forms
+Public Sub Main()
+	oInvApp = ThisApplication
+	oProject = oInvApp.DesignProjectManager.ActiveDesignProject
+	Dim sPathFolder As String = GetPathFolder(oProject.WorkspacePath)
+	If String.IsNullOrEmpty(sPathFolder) Then Exit Sub
+	Dim sFiles() As String = IO.Directory.EnumerateFiles(sPathFolder & "\", "*.*").
+							Where(Function(s) s.EndsWith(".idw") Or s.EndsWith(".dwg")).ToArray()
+	If sFiles.Length = 0 Then GoTo SkipDelete
+	Dim sNames(sFiles.Length - 1) As String	
+	For k As Integer = 0 To sFiles.Length - 1
+		sNames(k) = IO.Path.GetFileName(sFiles(k))
+	Next
+	Dim sSelecDoc As IEnumerable(Of Object) = MultiSelectListBox("Select Some", sNames, Nothing,
+																"Multi-Select Drawing", "My List")
+	If sSelecDoc Is Nothing Then Exit Sub
+    Dim oPB As Inventor.ProgressBar
+	oPB = oInvApp.CreateProgressBar(False, sSelecDoc.Count, "Loading all symbol names...")
+    oPB.Message = ("Loading...")
+	Dim i As Integer = 1
+	Dim oListName As New List(Of String)
+	For Each sItem In sSelecDoc
+        oPB.Message = ("Progress " & i & " of " & sSelecDoc.Count & ".")
+        oPB.UpdateProgress
+		Dim sFileName As String = sFiles.First(Function(s) s.Contains(sItem))
+		Dim oDoc As DrawingDocument = oInvApp.Documents.Open(sFileName, False)
+		oListName.AddRange(GetSymbolNames(oDoc.Sheets))
+		oDoc.Close(True)
+		i += 1
+	Next
+	oListName = oListName.Distinct().ToList()
+	oListName.Sort()
+	If oListName.Count = 0 Then
+		MessageBox.Show("Don't have symbol in the drawing!", "Error!")
+		GoTo SkipDelete
+	End If
+	oPB.Close()
+	oPB = Nothing : i = 1
+	
+	Dim objSelecName As IEnumerable(Of Object) = MultiSelectListBox("Select Some", oListName.ToArray(), Nothing,
+																	"Multi-Select Synbols", "My List")
+	If objSelecName.Count = 0 Then GoTo SkipDelete
+	Dim sSelecName As New List(Of String)
+	For Each sItem In objSelecName	
+		sSelecName.Add(sItem)
+	Next
+	oPB = oInvApp.CreateProgressBar(False, sSelecDoc.Count, "Deleting sketch symbol...")
+    oPB.Message = ("Loading...")
+	For Each sItem In sSelecDoc		
+        oPB.Message = ("Progress " & i & " of " & sSelecDoc.Count & ".")
+        oPB.UpdateProgress
+		Dim sFileName As String = sFiles.First(Function(s) s.Contains(sItem))
+    	Dim oDoc As DrawingDocument = oInvApp.Documents.Open(sFileName, True)
+		Call DeleteSymbol(oDoc, sSelecName.ToArray())
+	    oDoc.Save()
+	    oDoc.Close(True)
+		i += 1
+	Next
+	oPB.Close()
+	SkipDelete :
+'	Shell("explorer.exe /Open," & sPathFolder, vbNormalFocus)
+End Sub
+
+Dim oInvApp As Inventor.Application
+Dim targetSymbolName As String = "Test"
+
+Private Sub DeleteSymbol(ByVal oDoc As DrawingDocument, ByVal sListName() As String)
+    For Each oSheet As Sheet In oDoc.Sheets
+        For i As Integer = 1 To oSheet.SketchedSymbols.Count			
+            If sListName.Where(Function(s) s = oSheet.SketchedSymbols(i).Name).Count = 0 Then Continue For
+            Try : oSheet.SketchedSymbols(i).Delete()
+			Catch : MessageBox.Show("DocumentName - " & oDoc.DisplayName & vbLf _
+									& "SheetName -" & oSheet.Name, "Fail!")
+			End Try
+        Next i
+    Next
+End Sub
+
+Private Function GetSymbolNames(ByVal oSheets As Sheets) As List(Of String)
+	Dim oList As New List(Of String)
+    For Each oSheet As Sheet In oSheets
+			Dim sCount As Integer = oSheet.SketchedSymbols.Count
+			If sCount = 0 Then Continue For
+	        For i As Integer = 1 To sCount
+				oList.Add(oSheet.SketchedSymbols(i).Name)
+	        Next i
+	    Next
+	Return oList
+End Function
+
+Private Function GetPathFolder(ByVal sPathStart As String) As String
+	Dim Dialog = New FolderBrowserDialog()
+	Dialog.SelectedPath = sPathStart
+	If DialogResult.OK = Dialog.ShowDialog() Then
+		Return Dialog.SelectedPath
+	End If
+	Return Nothing
+End Function
+
+Private Function MultiSelectListBox(Optional Instructions As String = vbNullString, 
+									Optional Items As IEnumerable = Nothing,
+									Optional DefaultValue As Object = Nothing, 
+									Optional Title As String = vbNullString,
+									Optional ListName As String = vbNullString) As IEnumerable(Of Object)
+	Using oILBD As New Autodesk.iLogic.Runtime.InputListBoxDialog(Title, ListName, Instructions, Items, DefaultValue)
+		Dim oLB As System.Windows.Forms.ListBox = oILBD.Controls.Item(0).Controls.Item(2)
+		oLB.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple
+		Dim oDlgResult As System.Windows.Forms.DialogResult = oILBD.ShowDialog()
+		Dim oSelected As IEnumerable(Of Object) = oLB.SelectedItems.Cast(Of Object)
+		Return oSelected
+	End Using
+End Function

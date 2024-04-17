@@ -1,0 +1,58 @@
+﻿Public Class ThisRule
+    Public Sub main()
+
+        Dim doc As DrawingDocument = ThisDoc.Document
+        Dim sheet As Sheet = doc.ActiveSheet
+        Dim symbol As SketchedSymbol = sheet.SketchedSymbols(1)
+
+        Dim s As New Selector(ThisApplication)
+        s.Pick(symbol)
+    End Sub
+End Class
+
+Public Class Selector
+
+    Private WithEvents _interactEvents As InteractionEvents
+    Private WithEvents _selectEvents As SelectEvents
+    Private WithEvents _mouseEvents As MouseEvents
+
+    Private _stillSelecting As Boolean = False
+    Private _inventor As Inventor.Application
+    Private _symbol As SketchedSymbol
+
+    Public Sub New(ThisApplication As Inventor.Application)
+        _inventor = ThisApplication
+    End Sub
+
+    Public Sub Pick(symbol As SketchedSymbol)
+        _symbol = symbol
+        _stillSelecting = True
+
+        _interactEvents = _inventor.CommandManager.CreateInteractionEvents
+        _interactEvents.InteractionDisabled = False
+        _interactEvents.StatusBarText = "Move the symbol."
+
+        _mouseEvents = _interactEvents.MouseEvents
+        _mouseEvents.MouseMoveEnabled = True
+
+        ' start a transaction to stop the flooding of the Undo thing
+        Dim transaction = _inventor.TransactionManager.StartTransaction(_inventor.ActiveDocument, "Move Sketch Symbol")
+        _interactEvents.Start()
+        Do While _stillSelecting
+            _inventor.UserInterfaceManager.DoEvents()
+        Loop
+        _interactEvents.Stop()
+        transaction.End()
+
+        _inventor.CommandManager.StopActiveCommand()
+    End Sub
+    Public Sub onMouseMove(Button As MouseButtonEnum, ShiftKeys As ShiftStateEnum, ModelPosition As Point, ViewPosition As Point2d, View As Inventor.View) Handles _mouseEvents.OnMouseMove
+        _symbol.Position = _inventor.TransientGeometry.CreatePoint2d(ModelPosition.X, ModelPosition.Y)
+    End Sub
+    Public Sub onClick() Handles _mouseEvents.OnMouseClick
+        _stillSelecting = False
+    End Sub
+    Private Sub oInteractEvents_OnTerminate() Handles _interactEvents.OnTerminate
+        _stillSelecting = False
+    End Sub
+End Class

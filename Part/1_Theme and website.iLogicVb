@@ -252,8 +252,8 @@ Private Sub ProfilThick(oDoc As PartDocument)
 		tName = CreateListParams(oFeat.Profile.Parent)
 	End If
 	If String.IsNullOrEmpty(tName) Then Exit Sub
-	Try : oUPs("Толщина").Expression = tName : Catch
-	oUPs.AddByExpression("Толщина", tName, kMillimeterLengthUnits) : End Try
+	Try : oUPs("Товщина").Expression = tName : Catch
+	oUPs.AddByExpression("Товщина", tName, kMillimeterLengthUnits) : End Try
 End Sub
 
 Private Function CreateListParams(ByVal oSketch As PlanarSketch) As String

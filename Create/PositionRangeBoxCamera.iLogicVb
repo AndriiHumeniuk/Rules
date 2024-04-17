@@ -1,5 +1,5 @@
-﻿Private Sub Main()
-	Dim oAppInv As Inventor.Application = ThisApplication
+﻿Public Sub Main()
+	oAppInv = ThisApplication
 	Dim oDoc As Document = oAppInv.ActiveDocument
 	Dim oTM As TransactionManager = oAppInv.TransactionManager
 	Dim oDocs As Documents = oAppInv.Documents
@@ -7,7 +7,7 @@
 	Dim newTM As Transaction
 	If TypeOf oDoc Is PartDocument Then
 		newTM = oTM.StartTransaction(oDoc, "ChangePositionCamera")
-		Call PackagingComponent(oAppInv, oDoc)
+		Call PackagingComponent(oDoc)
 		newTM.End()
 		oAppInv.CommandManager.ControlDefinitions.Item("AppZoomallCmd").Execute()
 	Else If TypeOf oDoc Is AssemblyDocument Then
@@ -29,11 +29,11 @@
 			Next
 			If bVisible Then
 				oPartDoc.Activate()
-				Call PackagingComponent(oAppInv, oPartDoc)
+				Call PackagingComponent(oPartDoc)
 				oPartDoc.Save()
 			Else
 				Dim oVisDoc As Document = oDocs.Open(oPartDoc.FullDocumentName, True)
-				Call PackagingComponent(oAppInv, oVisDoc)
+				Call PackagingComponent(oVisDoc)
 				oVisDoc.Save()
 				oVisDoc.Close()
 			End If
@@ -43,16 +43,22 @@
 	End If
 End Sub
 
-Private Sub PackagingComponent(ByVal oAppInv As Inventor.Application, ByVal oPDoc As PartDocument)
+Dim oAppInv As Inventor.Application
+Dim dLengths(2) As Double
+
+Private Sub PackagingComponent(ByVal oDoc As PartDocument)
 	Dim oTG As TransientGeometry = oAppInv.TransientGeometry
-	Dim oPDef As ComponentDefinition = oPDoc.ComponentDefinition
+	Dim oPDef As ComponentDefinition = oDoc.ComponentDefinition
 	Dim minBox As OrientedBox = oPDef.SurfaceBodies.Item(1).OrientedMinimumRangeBox
+	dLengths(0) = minBox.DirectionOne.Length
+	dLengths(1) = minBox.DirectionTwo.Length
+	dLengths(2) = minBox.DirectionThree.Length
 	Dim oVectorY As Vector = GetVectorY(minBox)
 	If oVectorY Is Nothing Then Exit Sub
 	Dim oVectorZ As Vector = GetVectorZ(minBox)
 	If oVectorZ Is Nothing Then Exit Sub
 	Dim oMaxPlane As Plane = oTG.CreatePlane(minBox.CornerPoint, oVectorZ)
-	Call ChangeViewCam(oPDoc.Views.Item(1).Camera, oMaxPlane, oVectorY)
+	Call ChangeViewCam(oDoc.Views.Item(1).Camera, oMaxPlane, oVectorY)
 End Sub
 
 Private Function ChangeViewCam(ByVal oCam As Camera, ByVal oPlane As Plane, ByVal oVector As Vector)
@@ -65,10 +71,6 @@ Private Function ChangeViewCam(ByVal oCam As Camera, ByVal oPlane As Plane, ByVa
 End Function
 
 Private Function GetVectorY(ByVal minBox As OrientedBox) As Vector
-	Dim dLengths(2) As Double
-	dLengths(0) = minBox.DirectionOne.Length
-	dLengths(1) = minBox.DirectionTwo.Length
-	dLengths(2) = minBox.DirectionThree.Length
 	Dim dMid As Double = dLengths.Sum() -dLengths.Max - dLengths.Min
 	Select Case Round(dMid, 3)
 	Case Round(minBox.DirectionOne.Length, 3) : Return minBox.DirectionOne
@@ -79,10 +81,6 @@ Private Function GetVectorY(ByVal minBox As OrientedBox) As Vector
 End Function
 
 Private Function GetVectorZ(ByVal minBox As OrientedBox) As Vector
-	Dim dLengths(2) As Double
-	dLengths(0) = minBox.DirectionOne.Length
-	dLengths(1) = minBox.DirectionTwo.Length
-	dLengths(2) = minBox.DirectionThree.Length
 	Select Case dLengths.Min
 	Case minBox.DirectionOne.Length : Return minBox.DirectionOne
 	Case minBox.DirectionTwo.Length : Return minBox.DirectionTwo

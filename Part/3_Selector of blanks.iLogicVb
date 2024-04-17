@@ -5,8 +5,7 @@
 	Dim sName As String = System.IO.Path.GetFileNameWithoutExtension(oPartDoc.FullDocumentName)
 	If String.IsNullOrEmpty(sName) Then Exit Sub
 	Dim oPartMat As MaterialAsset = oPartDoc.ActiveMaterial
-	Dim dens As Double = oPartMat.PhysicalPropertiesAsset.Item("structural_Density").Value
-	Dim sMatName As String = oPartMat.DisplayName
+	Dim dens As Double = oPartMat.PhysicalPropertiesAsset("structural_Density").Value
 	Dim oUOfM As UnitsOfMeasure = oPartDoc.UnitsOfMeasure
 	Dim oUserParams As UserParameters = oPartDef.Parameters.UserParameters
 	Dim oCustom As PropertySet = oPartDoc.PropertySets("Inventor User Defined Properties")
@@ -22,7 +21,7 @@
 	Довж = oUOfM.ConvertUnits(ParamLong.Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
 	Вис = oUOfM.ConvertUnits(oUserParams("Висота").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
 	Шир = oUOfM.ConvertUnits(oUserParams("Ширина").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
-	Try : Товщ = oUOfM.ConvertUnits(oUserParams("Толщина").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
+	Try : Товщ = oUOfM.ConvertUnits(oUserParams("Товщина").Value, UnitsTypeEnum.kCentimeterLengthUnits, oUOfM.LengthUnits)
 	Catch : Товщ = Вис : End Try
 	
 	Dim Довж_R, Вис_R, Шир_R, Товщ_R, volum, dArea As Double
@@ -857,10 +856,13 @@
 	If oProject("Catalog Web Link").Value = "ДСТУ ISO 738" Then
 		Try : oCustom("Stren_steel").Value = "Деревина" : Catch : oCustom.Add("Деревина", "Stren_steel") : End Try
 	Else
-		Try : oCustom("Stren_steel").Value = sMatName.Substring(0, sMatName.IndexOf(" ")) 'Клас міцності
-		Catch : oCustom.Add(sMatName.Substring(0, sMatName.IndexOf(" ")), "Stren_steel") : End Try
-		Try : oCustom("Stan_steel").Value = sMatName.Remove(0, sMatName.IndexOf(" ") + 1) 'Стандарт матеріала
-		Catch : oCustom.Add(sMatName.Remove(0, sMatName.IndexOf(" ") + 1), "Stan_steel") : End Try
+		Dim sStren, sStan As String
+		sStren = oPartMat.PhysicalPropertiesAsset.DisplayName
+		sStan = oPartMat("physmat_Comments").Value
+		Try : oCustom("Stren_steel").Value = sStren 'Клас міцності
+		Catch : oCustom.Add(sStren, "Stren_steel") : End Try
+		Try : oCustom("Stan_steel").Value = sStan 'Стандарт матеріала
+		Catch : oCustom.Add(sStan, "Stan_steel") : End Try
 	End If
 	
 	Dim oMain_size, oArea_Color As Inventor.Property
@@ -895,7 +897,7 @@
 		If Веб_сайт = "ДСТУ 4738" Or Веб_сайт = "ДСТУ 4746" Or Веб_сайт = "ДСТУ 3671-97" Or Веб_сайт = "ДСТУ EN 10061" Then
 			SumTit = "" & RevNumb & " " & iPropValSumSub & ", L=" & Довж_R & " мм"
 		ElseIf Веб_сайт = "ДСТУ 8540" Then
-			SumTit = "" & RevNumb & " " & Товщ_R & "-" & Вис_R & "×" & Шир_R & ""
+			SumTit = "" & RevNumb & " " & Товщ_R & "-" & Довж_R & "×" & Вис_R & ""
 		ElseIf Веб_сайт = "ДСТУ 8783" Or Веб_сайт = "ГОСТ 8706-78" Then
 			SumTit = "" & RevNumb & " " & iPropValSumSub & "×" & Довж_R & "×" & Шир_R & ""
 		ElseIf Веб_сайт = "DIN 24537-1" Then

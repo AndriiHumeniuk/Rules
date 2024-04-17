@@ -1,0 +1,24 @@
+﻿Sub main
+	Dim oDoc As Document = ThisDoc.Document
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oPDFAddIn As TranslatorAddIn = oInvApp.ApplicationAddIns.ItemById("{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}")
+	If Not TypeOf oDoc Is DrawingDocument Then Exit Sub
+	Dim oTO As TransientObjects = oInvApp.TransientObjects
+	Dim oDataMedium As DataMedium = oTO.CreateDataMedium
+	oDataMedium.FileName = IO.Path.ChangeExtension(oDoc.FullFileName, ".pdf")
+	If IO.File.Exists(oDataMedium.FileName) Then
+		Dim sOldFolder As String = IO.Path.GetDirectoryName(oDoc.FullFileName) & "\OldVersions"
+		If Not IO.Directory.Exists(sOldFolder) Then IO.Directory.CreateDirectory(sOldFolder)
+		Dim sNewPath As String = sOldFolder & "\" & IO.Path.GetFileName(oDataMedium.FileName)
+		If IO.File.Exists(sNewPath) Then IO.File.Delete(sNewPath)
+		Call IO.File.Move(oDataMedium.FileName, sNewPath)
+	End If
+	Dim oContext As TranslationContext = oTO.CreateTranslationContext
+	oContext.Type = kFileBrowseIOMechanism
+	Dim oOptions As NameValueMap = oTO.CreateNameValueMap
+	oOptions.Value("All_Color_AS_Black") = 0
+	oOptions.Value("Remove_Line_Weights") = 0
+	oOptions.Value("Vector_Resolution") = 400
+	oOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
+	Call oPDFAddIn.SaveCopyAs(oDoc, oContext, oOptions, oDataMedium)
+End Sub

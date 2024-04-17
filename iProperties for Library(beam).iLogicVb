@@ -67,9 +67,9 @@ If Round_y <> 0 Then
 	End If
 	Try : oInvUserInfo("Main_size").Value = Leng / 1000 : Catch : oInvUserInfo.Add(Leng / 1000, "Main_size") : End Try
 End If
-Try : oInvUserInfo("Stren_steel").Value = sMatName.Substring(0, sMatName.IndexOf(" "))
-Catch : oInvUserInfo.Add(sMatName.Substring(0, sMatName.IndexOf(" ")), "Stren_steel") : End Try 'Клас міцності
-Try : oInvUserInfo("Stan_steel").Value = sMatName.Remove(0, sMatName.IndexOf(" ") + 1)
-Catch : oInvUserInfo.Add(sMatName.Remove(0, sMatName.IndexOf(" ") + 1), "Stan_steel") : End Try 'Стандарт матеріала
+Try : oInvUserInfo("Stren_steel").Value = oDocMat.PhysicalPropertiesAsset.DisplayName
+Catch : oInvUserInfo.Add(oDocMat.PhysicalPropertiesAsset.DisplayName, "Stren_steel") : End Try 'Клас міцності
+Try : oInvUserInfo("Stan_steel").Value = oDocMat("physmat_Comments").Value
+Catch : oInvUserInfo.Add(oDocMat("physmat_Comments").Value, "Stan_steel") : End Try 'Стандарт матеріала
 Try : oInvUserInfo("Area_Color").Value = Math.Round((L_size * oFeat.Profile.RegionProperties.Perimeter) / 100000, 3)
 Catch : oInvUserInfo.Add(Math.Round((L_size * oFeat.Profile.RegionProperties.Perimeter) / 1000000, 3), "Area_Color") : End Try

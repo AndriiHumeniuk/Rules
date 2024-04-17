@@ -1,40 +1,111 @@
 ﻿Sub main
-	Dim oDoc As Document = ThisDoc.Document
+	oInvApp = ThisApplication
+	Dim oDoc As Document = oInvApp.ActiveDocument
 	If Not TypeOf oDoc Is PartDocument Then Exit Sub
 	Dim oPDoc As PartDocument = oDoc
 	If oPDoc.ComponentDefinition.SurfaceBodies.Count = 0 Then Exit Sub
-	Dim oBody As SurfaceBody = oPDoc.ComponentDefinition.SurfaceBodies(1)
+	Dim oDef As PartComponentDefinition = oPDoc.ComponentDefinition
+	Dim oBody As SurfaceBody = oDef.SurfaceBodies(1)
 	Dim oProfile As Profile
-	Try : oProfile = oBody.CreatedByFeature.Profile
-	Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
-	End Try
+	If oBody.CreatedByFeature.Name.Contains("::") Then
+		Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
+		If oDriveParts.Count = 0 Then MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
+		Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
+		Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+		Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+		oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
+		Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
+		For Each oBodyRef As SurfaceBody In oGroundDef.SurfaceBodies
+			If oBodyRef.Name <> oBodyName Then Continue For
+			Dim oFeat As PartFeature = oGroundDef.Features(oBodyRef.CreatedByFeature.Name)
+			If oFeat.Type = 83915776 Then
+				Dim BrowserPane As BrowserPane = oDerPart.BrowserPanes("Model")
+				oFeat = GetParentFeature(BrowserPane.TopNode.BrowserNodes(3).BrowserNodes, oBodyName)
+				
+			End If
+			Try : oProfile = oFeat.Profile
+			Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
+			End Try
+		Next		
+	Else
+		Try : oProfile = oBody.CreatedByFeature.Profile
+		Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
+		End Try
+	End If
 	Dim dIxx, dIyy, dIzz, dIxy, dIyz, dIxz, dIx, dIy, dIz, dKxx, dKyy, dKzz As Double
 	Dim oRegProps As RegionProperties = oProfile.RegionProperties
+	Dim oBox As Box2d = GetRangeBoxForSketch(oProfile(1))
 	Logger.Info(" Profile properties:")	
+	oRegProps.Accuracy = AccuracyEnum.kMedium
 	Logger.Info(" Area = " & Round(oRegProps.Area, 3) & " cm2")
 	Logger.Info(" Perimeter = " & Round(oRegProps.Perimeter, 3) & " cm")
 	oRegProps.CentroidMomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
-	Logger.Info(" Z0(X) = " & Round(oRegProps.Centroid.X, 5) & " cm")
-	Logger.Info(" Z0(Y) = " & Round(oRegProps.Centroid.Y, 5) & " cm")
-'	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm4")
-'	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm4")
-'	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
-'	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
-'	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
-'	Logger.Info(" Ixz = " & Round(dIxz, 5) & " cm")
-	oRegProps.MomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
+	Dim dMinDist As Double = oInvApp.MeasureTools.GetMinimumDistance(oBox.MinPoint, oRegProps.Centroid)
+	Dim dMaxDist As Double = oInvApp.MeasureTools.GetMinimumDistance(oBox.MaxPoint, oRegProps.Centroid)
+	Dim z0_X, z0_Y As Double
+	If dMinDist < dMaxDist Then
+		z0_X = Abs(oBox.MinPoint.X - oRegProps.Centroid.X)
+		z0_Y = Abs(oBox.MinPoint.Y - oRegProps.Centroid.Y)
+	Else
+		z0_X = Abs(oBox.MaxPoint.X - oRegProps.Centroid.X)
+		z0_Y = Abs(oBox.MaxPoint.Y - oRegProps.Centroid.Y)
+	End If
+	Logger.Info(" Z0(X) = " & Round(z0_X, 5) & " cm")
+	Logger.Info(" Z0(Y) = " & Round(z0_Y, 5) & " cm")
 	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm4")
 	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm4")
 '	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
-'	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
+	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
+'	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
+'	Logger.Info(" Ixz = " & Round(dIxz, 5) & " cm")
+	oRegProps.MomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
+	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
+	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
+'	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
+	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
 '	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
 '	Logger.Info(" Ixz = " & Round(dIxz, 5) & " cm")
 	oRegProps.PrincipalMomentsOfInertia(dIx, dIy, dIz)
-	Logger.Info(" Ix = " & Round(dIx, 5) & " cm4")
-	Logger.Info(" Iy = " & Round(dIy, 5) & " cm4")
+	Logger.Info(" Ix = " & Round(dIx, 5) & " cm^4")
+	Logger.Info(" Iy = " & Round(dIy, 5) & " cm^4")
 '	Logger.Info(" Iz = " & Round(dIz, 5) & " cm4")
 	oRegProps.RadiusOfGyration(dKxx, dKyy, dKzz)
 	Logger.Info(" Kxx = " & Round(dKxx, 5) & " cm")
 	Logger.Info(" Kyy = " & Round(dKyy, 5) & " cm")
 '	Logger.Info(" Kzz = " & Round(dKzz, 5) & " cm3")
+	Logger.Info(" Rotation Angle = " & Round(oRegProps.RotationAngle, 5) & " degr")
 End Sub
+
+Dim oInvApp As Inventor.Application
+
+Private Function GetRangeBoxForSketch(ByVal oPath As ProfilePath) As Box2d	
+	Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+	Dim minX, minY, maxX, maxY As Double
+	For i As Integer = 1 To oPath.Count
+		Dim oRBox As Box2d = oPath(i).SketchEntity.RangeBox
+		If oRBox.MinPoint.X < minX Or i = 1 Then	minX = oRBox.MinPoint.X
+		If oRBox.MinPoint.Y < minY Or i = 1 Then minY = oRBox.MinPoint.Y
+		If oRBox.MaxPoint.X > maxX Or i = 1 Then maxX = oRBox.MaxPoint.X
+		If oRBox.MaxPoint.Y > maxY Or i = 1 Then maxY = oRBox.MaxPoint.Y
+	Next i
+	Dim oBox As Box2d = oTG.CreateBox2d()	
+	oBox.MinPoint = oTG.CreatePoint2d(minX, minY)
+	oBox.MaxPoint = oTG.CreatePoint2d(maxX, maxY)
+	Return oBox
+End Function
+
+Private Function GetParentFeature(ByVal oNodes As BrowserNodesEnumerator, ByVal sName As String) As PartFeature
+	For Each oNode As BrowserNode In oNodes
+		If oFeat IsNot Nothing Then Exit For
+		If oNode.BrowserNodeDefinition.Label <> sName Then Continue For
+		If oNode.BrowserNodes.Count = 0 Then Continue For
+		For Each oSubNode As BrowserNode In oNode.BrowserNodes
+			If oSubNode.BrowserNodes.Count = 0 Then Continue For
+			Try : If oSubNode.NativeObject.Type = 83924736 Then Continue For
+			Catch : End Try
+			Return GetParentFeature(oNode.BrowserNodes, oSubNode.BrowserNodeDefinition.Label)
+		Next
+		Return oNode.NativeObject
+	Next
+	Return Nothing
+End Function

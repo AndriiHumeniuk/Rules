@@ -1,0 +1,37 @@
+﻿AddReference "C:\Program Files\Autodesk\Inventor 2024\Bin\AnarkCoreInventorAddIn.dll"
+Imports oSource = AnarkCoreInventorAddIn
+Sub Main
+	Dim oDoc As Inventor.Document = ThisDoc.Document
+	Dim o3D_PDF_AddIn As Inventor.ApplicationAddIn
+	For Each oAppAddin As Inventor.ApplicationAddIn In ThisApplication.ApplicationAddIns
+		'If oAppAddin.DisplayName = "Anark 3D PDF Publishing" Then
+		If oAppAddin.ClassIdString = "{3EE52B28-D6E0-4EA4-8AA6-C2A266DEBB88}" Then
+			o3D_PDF_AddIn = oAppAddin
+			Exit For
+		End If
+	Next 'oAppAddin
+	If o3D_PDF_AddIn Is Nothing Then Exit Sub
+	Dim o3D_PDF_Converter As oSource.AutomationInterface = o3D_PDF_AddIn.Automation
+'	Dim oOptions As NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+'	oOptions.Add("FileOutputLocation", "C:\Temp\Exported 3D PDF (from iLogic).pdf")
+	Logger.Info(vbCrLf & _
+	"AttachedFiles = " & oSource.AutomationInterface.AttachedFiles & vbCrLf & _
+	"ExportAllProperties = " & oSource.AutomationInterface.ExportAllProperties & vbCrLf & _
+	"ExportProperties = " & oSource.AutomationInterface.ExportProperties & vbCrLf & _
+	"ExportDesignViewRepresentations = " & oSource.AutomationInterface.ExportDesignViewRepresentations & vbCrLf & _
+	"LimitToEntitiesInDVRs = " & oSource.AutomationInterface.LimitToEntitiesInDVRs & vbCrLf & _
+	"ExportTemplate = " & oSource.AutomationInterface.ExportTemplate & vbCrLf & _
+	"FileOutputLocation = " & oSource.AutomationInterface.FileOutputLocation & vbCrLf & _
+	"GenerateAndAttachSTEPFile = " & oSource.AutomationInterface.GenerateAndAttachSTEPFile & vbCrLf & _
+	"StepApplicationProtocolType = " & oSource.AutomationInterface.StepApplicationProtocolType & vbCrLf & _
+	"StepAuthor = " & oSource.AutomationInterface.StepAuthor & vbCrLf & _
+	"StepAuthorization = " & oSource.AutomationInterface.StepAuthorization & vbCrLf & _
+	"StepDescription = " & oSource.AutomationInterface.StepDescription & vbCrLf & _
+	"StepExportFitTolerance = " & oSource.AutomationInterface.StepExportFitTolerance & vbCrLf & _
+	"STEPFileOptions = " & oSource.AutomationInterface.STEPFileOptions & vbCrLf & _
+	"StepIncludeSketches = " & oSource.AutomationInterface.StepIncludeSketches & vbCrLf & _
+	"StepOrganization = " & oSource.AutomationInterface.StepOrganization & vbCrLf & _
+	"ViewPDFWhenFinished = " & oSource.AutomationInterface.ViewPDFWhenFinished & vbCrLf & _
+	"VisualizationQuality = " & oSource.AutomationInterface.VisualizationQuality)
+	'o3D_PDF_Converter.Publish(oDoc, oOptions)
+End Sub

@@ -1,0 +1,23 @@
+﻿AddReference "LinearCutCalculator.dll"
+Imports LinearCut._1D
+Sub main()
+	Dim dDropLength() As Double = {1380, 1520, 1560, 1710, 1820, 1880, 1930, 2000, 2050, 2100, 2140, 2150, 2200}
+'	Dim dDropLength() As Double = {1299, 2239, 2539, 1234, 439, 839, 1140, 2375, 3060, 2670, 6000, 5770, 725, 545, 4435, 4900}
+	Dim iDropQty() As Integer = {22, 25, 12, 14, 18, 18, 20, 10, 12, 14, 16, 18, 20}
+'	Dim iDropQty() As Integer = {12, 101, 1, 10, 2, 2, 1, 2, 7, 17, 42, 7, 17, 7, 2, 1}
+	Dim No_Of_Planks As Integer = 0
+	Dim oSaw As Double = 2
+	Dim dMaxLength As Double = 6000
+	
+	Dim SW As Stopwatch = New Stopwatch
+	SW.Start()
+	Dim oCalc As New Calculator(dMaxLength, oSaw)
+	For i As Integer = 0 To dDropLength.Count - 1
+		Call oCalc.AddPartAndQuantity(dDropLength(i), iDropQty(i))
+	Next
+	Call oCalc.CalculatePlanks()
+'	Call oCalc.PrintPlanksToTXT("C:/Users/gtaiv/OneDrive/Desktop/Planes.txt")
+	Call oCalc.PrintPlanksCountToTXT("C:/Users/gtaiv/OneDrive/Desktop/Count.txt")
+	SW.Stop()
+	MessageBox.Show("Час виконання = " & SW.ElapsedMilliseconds & " milliseconds", "Таймер")
+End Sub

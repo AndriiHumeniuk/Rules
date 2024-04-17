@@ -1,0 +1,81 @@
+﻿AddReference "System.xml.dll"
+
+Public Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+	Dim oADoc As AssemblyDocument = TryCast(oInvApp.ActiveDocument, AssemblyDocument)
+	If oADoc Is Nothing Then Exit Sub
+	Dim oOcc As ComponentOccurrence
+	oOcc = oInvApp.CommandManager.Pick(kAssemblyLeafOccurrenceFilter, "Select connection")
+	If oOcc Is Nothing Then Exit Sub
+	Dim oAttSets As AttributeSets = oOcc.AttributeSets
+	If Not oAttSets.NameIsUsed("FDesign") Then Exit Sub
+	Call Get_ID_Standarte(oAttSets("FDesign")("Data").Value)
+	For Each oSubOcc As ComponentOccurrence In oOcc.SubOccurrences
+		If oSubOcc.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then Continue For
+		Dim oSubDef As PartComponentDefinition = oSubOcc.Definition
+		Dim iTypeOcc As Integer = IsChain(oSubDef.Features)
+		If iTypeOcc = 1 Then
+			Call WritePropertyChain(oSubDef.Document)
+		Else If iTypeOcc = 2 Then
+			Call WritePropertySprocket(oSubDef.Document)
+		End If			
+	Next
+End Sub
+
+Dim sStandard, sNameChain As String
+Dim d_P, d_X, d_m, d_Bf, d_Height, d_Dr As Double
+
+Private Sub Get_ID_Standarte(ByVal sData As String)
+	Dim categoriesXml = sData
+	Dim xmlDoc As New System.Xml.XmlDocument
+	xmlDoc.LoadXml(categoriesXml)
+	Dim iNodeObj, iNodeP, iNodeC, iNodeS As System.Xml.XmlNode
+	iNodeObj = xmlDoc.SelectSingleNode("FDesign").SelectSingleNode("Object")
+	If iNodeObj.Attributes.GetNamedItem("Class").InnerXml <> "CARollerChains" Then Exit Sub
+	iNodeP = iNodeObj.SelectSingleNode("Path")
+	iNodeC = iNodeP.SelectSingleNode("Chain")
+	iNodeS = iNodeP.SelectSingleNode("Sprockets")
+	sStandard = System.IO.Path.GetFileNameWithoutExtension(iNodeC.Attributes.GetNamedItem("CFFamily").InnerXml)
+	Select Case sStandarde
+	Case "iso606" : sStandarde = "ISO 606:2004"
+	Case "gost" : sStandarde = "ДСТУ ГОСТ 13568"
+	End Select
+	sNameChain = iNodeC.Attributes.GetNamedItem("CFMoniker").InnerXml
+	Dim sP As String = iNodeC.SelectSingleNode("p").Attributes.GetNamedItem("Val").InnerXml
+	Dim sX As String = iNodeC.SelectSingleNode("X").Attributes.GetNamedItem("Val").InnerXml
+	Dim sm As String = iNodeC.SelectSingleNode("m").Attributes.GetNamedItem("Val").InnerXml
+	Dim sBf As String = iNodeC.SelectSingleNode("b1").Attributes.GetNamedItem("Val").InnerXml
+	Dim sH As String = iNodeC.SelectSingleNode("h2").Attributes.GetNamedItem("Val").InnerXml
+	Dim sDr As String = iNodeC.SelectSingleNode("d1").Attributes.GetNamedItem("Val").InnerXml
+	d_P = Double.Parse(sP.Replace(".", ","))
+	d_X = Double.Parse(sX.Replace(".", ","))
+	d_m = Double.Parse(sm.Replace(".", ","))
+	d_Bf = Double.Parse(sBf.Replace(".", ","))
+	d_Height = Double.Parse(sH.Replace(".", ","))
+	d_Dr = Double.Parse(sDr.Replace(".", ","))
+End Sub
+
+Private Sub WritePropertyChain(ByVal oDoc As PartDocument)
+	Dim oProject As PropertySet = oDoc.PropertySets("Design Tracking Properties")
+	Dim oSummary As PropertySet = oDoc.PropertySets("Inventor Summary Information")
+	Dim oCustom As PropertySet = oDoc.PropertySets("Inventor User Defined Properties")
+	oProject("Part Number").Value = ""
+	oSummary("Revision Number").Value = "Ланцюг"
+	oProject("Catalog Web Link").Value = sStandard
+	oSummary("Subject").Value = sNameChain
+End Sub
+
+Private Sub WritePropertySprocket(ByVal oDoc As PartDocument)
+End Sub
+
+Private Function IsChain(ByVal oFeats As PartFeatures) As Integer
+	For i As Integer = 1 To oFeats.Count
+		If oFeats(i).AttributeSets.Count = 0 Then Continue For
+		For k As Integer = 1 To oFeats(i).AttributeSets(1).Count
+			If oFeats(i).AttributeSets(1)(k).Value = "IDS_CHAIN_SOLID" Then : Return 1
+			Else If oFeats(i).AttributeSets(1)(k).Value = "IDS_THEORETICAL_TOOTH" Then : Return 2
+			End If
+		Next k
+	Next i
+	Return 0
+End Function

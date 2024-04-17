@@ -233,15 +233,17 @@ Private Function GetThickMaxFace(ByVal oInvApp As Inventor.Application, ByVal oB
 End Function
 
 Private Function GetParentFeature(oNodes As BrowserNodesEnumerator, sName As String) As PartFeature
-	Dim oFeat As PartFeature
 	For Each oNode As BrowserNode In oNodes
-		If oNode.BrowserNodeDefinition.Label = sName Then
-			If oNode.BrowserNodes(1).BrowserNodes.Count > 0 Then
-				oFeat = GetParentFeature(oNodes, oNode.BrowserNodes(1).BrowserNodes.Item(1).BrowserNodeDefinition.Label)
-			Else
-				Return oNode.BrowserNodes(1).NativeObject			
-			End If
-		End If
+		If oFeat IsNot Nothing Then Exit For
+		If oNode.BrowserNodeDefinition.Label <> sName Then Continue For
+		If oNode.BrowserNodes.Count = 0 Then Continue For
+		For Each oSubNode As BrowserNode In oNode.BrowserNodes
+			If oSubNode.BrowserNodes.Count = 0 Then Continue For
+			Try : If oSubNode.NativeObject.Type = 83924736 Then Continue For
+			Catch : End Try
+			Return GetParentFeature(oNode.BrowserNodes, oSubNode.BrowserNodeDefinition.Label)
+		Next
+		Return oNode.NativeObject
 	Next
-	Return oFeat
+	Return Nothing
 End Function
