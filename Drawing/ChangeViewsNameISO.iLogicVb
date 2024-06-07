@@ -2,7 +2,6 @@
 	Dim oInvApp As Inventor.Application = ThisApplication
 	Dim oDraw As DrawingDocument = TryCast(oInvApp.ActiveDocument, DrawingDocument)
 	If oDraw Is Nothing Then Exit Sub
-'	Dim viewRefAddin As ViewReferenceAutomation = oInvApp.GetViewReferenceAddin()
 	Dim oTM As TransactionManager = oInvApp.TransactionManager	
 	Dim oSheets As Sheets = oDraw.Sheets
 	Dim oFirstView As DrawingView = GetFirstView(oSheets)
@@ -80,7 +79,8 @@
 			Else
 				sNameView = CheckRotateView(oView)
 				If sNameView Is Nothing Then Continue For
-				oView.Label.FormattedText = sNameView
+				Try : oView.Label.FormattedText = sNameView
+				Catch : End Try
 			End If
 	    Next
 	Next

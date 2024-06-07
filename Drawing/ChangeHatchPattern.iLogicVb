@@ -5,21 +5,19 @@ For Each oView As DrawingView In oDDoc.ActiveSheet.DrawingViews
 		Dim oDoc As Document = oHanth.SurfaceBody.ComponentDefinition.Document
 		Select Case oDoc.ActiveMaterial("physmat_Type").Value
 '		Case "physmat_metal"
-'			oHanth.ByMaterial = False
 '			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 31")
-		Case "physmat_concrete"
-			oHanth.ByMaterial = False
+		Case "physmat_concrete", "physmat_stone"
 			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 35")
 		Case "physmat_glass"
-			oHanth.ByMaterial = False
 			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("CUST05")
 		Case "physmat_plastic"
-			oHanth.ByMaterial = False
 			oHanth.Pattern = oDDoc.DrawingHatchPatternsManager("ANSI 37")
 '			Select Case oDoc.ActiveMaterial("physmat_Keywords").Value
 '			Case "Гума"
 '			Case Else
 '			End Select
+		Case Else : Continue For
 		End Select
+		Try : oHanth.ByMaterial = False : Catch : End Try
 	Next
 Next

@@ -1,0 +1,32 @@
+﻿Dim oInvApp As Inventor.Application = ThisApplication
+Dim oTG As TransientGeometry = oInvApp.TransientGeometry
+Dim oPDoc As PartDocument = oInvApp.ActiveDocument
+Dim oPDef As PartComponentDefinition = oPDoc.ComponentDefinition
+Dim oUsParams As UserParameters = oPDef.Parameters.UserParameters
+Dim oSketch As PlanarSketch = oPDef.Sketches(1)
+Dim oText As Inventor.TextBox = oSketch.TextBoxes(1)
+Dim oDimH, oDimW As TwoPointDistanceDimConstraint 
+For Each oLine As SketchLine In oText.BoundaryGeometry
+	Dim oS As Point2d = oLine.Geometry.StartPoint
+	Dim oM As Point2d = oLine.Geometry.MidPoint
+	Dim oE As Point2d = oLine.Geometry.EndPoint
+	If oS.X = oE.X And oDimH Is Nothing Then
+		Dim oPText As Point2d
+		oPText = oTG.CreatePoint2d(oS.X - 1, oM.Y)
+		oDimH = oSketch.DimensionConstraints.AddTwoPointDistance(oLine.StartSketchPoint,
+														oLine.EndSketchPoint,
+														DimensionOrientationEnum.kVerticalDim,
+														oPText,
+														False)
+		oDimH.Parameter.Expression = oUsParams("d_H").Name
+	Else If oS.Y = oE.Y And oDimW Is Nothing Then
+		Dim oPText As Point2d
+		oPText = oTG.CreatePoint2d(oM.X, oS.Y+1)
+		oDimW = oSketch.DimensionConstraints.AddTwoPointDistance(oLine.StartSketchPoint,
+														oLine.EndSketchPoint,
+														DimensionOrientationEnum.kHorizontalDim,
+														oPText,
+														False)
+		oDimW.Parameter.Expression = oUsParams("d_W").Name
+	End If
+Next

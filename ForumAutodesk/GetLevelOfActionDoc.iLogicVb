@@ -1,0 +1,16 @@
+﻿Dim oInvApp As Inventor.Application = ThisApplication
+Dim oADoc As AssemblyDocument = TryCast(oInvApp.ActiveDocument, AssemblyDocument)
+If oADoc Is Nothing Then Exit Sub
+Dim oADef As AssemblyComponentDefinition = oADoc.ComponentDefinition
+Dim oEditOcc As ComponentOccurrence = oADef.ActiveOccurrence
+If oEditOcc Is Nothing Then Exit Sub
+Dim oParentOcc As ComponentOccurrence
+MessageBox.Show(oEditOcc.Name, "Avtive Edit Occurrence:")
+Dim iLevel As Integer = 1
+Do
+	oParentOcc = oEditOcc.ParentOccurrence
+	MessageBox.Show(oParentOcc.Name, "Parent Occurrence - Level " & iLevel & ":")
+	iLevel += 1
+	oEditOcc = oParentOcc
+Loop While oEditOcc.ParentOccurrence Isnot Nothing
+MessageBox.Show(oADoc.DisplayName, "Top Level Document - Level " & iLevel & ":")

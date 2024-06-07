@@ -1,0 +1,172 @@
+﻿Sub Main()
+	Dim oInvApp As Inventor.Application = ThisApplication
+    Dim oAsmDoc As AssemblyDocument = TryCast(oInvApp.ActiveDocument, AssemblyDocument)
+	If oAsmDoc Is Nothing Then Exit Sub
+    Dim oAsmDef As AssemblyComponentDefinition = oAsmDoc.ComponentDefinition
+    Dim oOcc As ComponentOccurrence
+    oOcc = oInvApp.CommandManager.Pick(kAssemblyLeafOccurrenceFilter, "Select Profile...")
+    Dim oDef As PartComponentDefinition = oOcc.Definition
+
+    If oDef.IsContentMember Then
+        MsgBox("this sample works with the custom CC member only")
+        Exit Sub
+    Else
+        Debug.Print("It's a Custom CC member")
+    End If
+
+    Dim oDoc As PartDocument = oDef.Document
+    Dim oProps As PropertySet = oDoc.PropertySets.Item("Content Library Component Properties")
+
+    Dim oProp As Inventor.Property = oProps.Item("FamilyId")
+    Dim FamilyId As String = oProp.Value
+    Dim oContentCenter As ContentCenter = oInvApp.ContentCenter
+    Dim oFamily As ContentFamily = oContentCenter.GetContentObject("v3#" + FamilyId + "#")
+    Dim MemberId As String = oProps.Item("MemberId").Value
+	Dim sActSNumber As String = String.Empty
+    Dim newRow As Integer
+	Dim i As Integer
+	For i = 1 To oFamily.TableColumns.Count
+		If oFamily.TableColumns(i).KeyColumnOrder = 2 Then Exit For
+	Next i
+	Dim iCount As Integer = oFamily.TableRows.Count-1
+	Dim sStockNumb(iCount) As String
+	For k As Integer = 0 To iCount
+		sStockNumb(k) = "" & oFamily.TableRows(k + 1).Item(i).Value & ""
+		If k + 1 = MemberId Then sActSNumber = oFamily.TableRows(k + 1).Item(i).Value
+	Next k
+	Dim sSNumber As String = InputListBox(oFamily.MemberDirectory,
+											sStockNumb.ToList(),
+											sActSNumber,
+											oFamily.DisplayName,
+											oFamily.TableColumns(i).DisplayHeading)
+	If String.IsNullOrEmpty(sSNumber) Then Exit Sub
+	For k As Integer = 0 To iCount
+		If sSNumber = oFamily.TableRows(k + 1).Item(i).Value Then newRow = k + 1
+	Next k
+
+    Dim oRow As ContentTableRow = oFamily.TableRows(newRow)
+    Dim nCol As Integer
+    Dim oColumn As ContentTableColumn
+
+    Dim oPar As UserParameter
+    Dim oCustomProps As PropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+
+    For Each oPar In oDef.Parameters.UserParameters
+
+        If oPar.DrivenBy.Count = 0 Then
+
+            nCol = -1
+            For i = 1 To oFamily.TableColumns.Count
+                If oFamily.TableColumns.Item(i).InternalName = oPar.Name Then
+                    nCol = i
+                    Exit For
+                End If
+            Next
+            If nCol <> -1 Then
+
+                oColumn = oFamily.TableColumns.Item(nCol)
+
+                If oColumn.KeyColumnOrder > 0 Then
+                Else
+                    Dim units As String
+                    units = oColumn.Units
+
+                    Dim oCell As ContentTableCell
+                    oCell = oRow.Item(nCol)
+
+                    Dim value As String
+                    value = oCell.Value & " " & units
+
+                    oPar.Expression = value
+
+                    Try
+                        oCustomProps.Item(oPar.Name).Value = value
+                    Catch ex As Exception
+                    End Try
+                End If
+            End If
+        End If
+    Next
+
+    oProp = oProps.Item("MemberId")
+    oProp.Value = newRow
+    oProp = oProps.Item("Member Revision")
+
+    For i = 1 To oFamily.TableColumns.Count
+        oColumn = oFamily.TableColumns.Item(i)
+        If oColumn.HasPropertyMap = True Then
+            Dim setid As String = String.Empty
+            Dim propid As String = String.Empty
+            Dim units As String
+            units = oColumn.Units
+
+            Try
+                If oColumn.InternalName <> "PARTNUMBER" Then
+                    oColumn.GetPropertyMap(setid, propid)
+                    Dim oExpression As String = oColumn.Expression
+                    oExpression = Replace(Replace(oExpression, "&", ""), Chr(34), "")
+                    Dim inS As String = oExpression
+                    Dim oColl As New Collection
+
+                    Dim s As String
+                    Dim j As Integer, k As Integer
+                    Do
+                        j = InStr(1, inS, "{")
+                        k = InStr(1, inS, "}")
+                        If (j = 0) Or (k = 0) Then Exit Do
+                        s = Mid$(inS, j + 1, k - j - 1)
+                        If s <> "" Then
+                            Call oColl.Add(s)
+                            inS = Mid$(inS, k + 1, Len(inS))
+                        End If
+                    Loop Until s = ""
+
+                    Dim ss As Object
+                    For Each ss In oColl
+                        Try
+                            Dim oParam As UserParameter
+                            Try
+                                oParam = oDef.Parameters.UserParameters.Item(ss)
+                                s = oParam.Expression
+                                Debug.Print(s)
+                                s = Microsoft.VisualBasic.Left$(s, InStr(s, " ") - 1)
+                                Debug.Print(s)
+                            Catch
+                                s = ""
+                                For colIndex = 1 To oFamily.TableColumns.Count
+                                    If oFamily.TableColumns.Item(colIndex).InternalName = ss Then
+                                        s = oRow.Item(colIndex).Value
+                                        Exit For
+                                    End If
+                                Next
+
+                                Debug.Print(s)
+                            End Try
+                        Catch
+                        End Try
+                        oExpression = Replace$(oExpression, "{" & ss & "}", s)
+                    Next
+
+                    Try
+                        oDoc.PropertySets.Item(setid).ItemByPropId(propid).Value = oExpression &
+                            If(units IsNot Nothing, " " & units, Nothing)
+                    Catch
+                        oDoc.PropertySets.Item(setid).Item(propid).Value = oExpression &
+                            If(units IsNot Nothing, " " & units, Nothing)
+                    End Try
+
+                End If
+
+            Catch
+            End Try
+        End If
+
+    Next
+
+    oDoc.Update()
+    oDoc.Save()
+
+    oAsmDoc.Update()
+'    oAsmDoc.Rebuild2()
+'    Beep()
+End Sub

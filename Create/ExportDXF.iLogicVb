@@ -29,7 +29,8 @@
 End Sub
 
 Private Function CheckPart(ByVal oPDoc As Document) As Boolean
-	If oPDoc.PropertySets("Design Tracking Properties")("Catalog Web Link").Value = "ДСТУ 8540" Then Return False
+	Dim sStand As String = oPDoc.PropertySets("Design Tracking Properties")("Catalog Web Link").Value
+	If sStand = "ДСТУ 8540" Or sStand = "EN 10131" Then Return False
 	Return True
 End Function
 

@@ -1,37 +1,9 @@
-﻿Sub main
+﻿Public Sub Main()
 	oInvApp = ThisApplication
-	Dim oDoc As Document = oInvApp.ActiveDocument
-	If Not TypeOf oDoc Is PartDocument Then Exit Sub
-	Dim oPDoc As PartDocument = oDoc
-	If oPDoc.ComponentDefinition.SurfaceBodies.Count = 0 Then Exit Sub
-	Dim oDef As PartComponentDefinition = oPDoc.ComponentDefinition
-	Dim oBody As SurfaceBody = oDef.SurfaceBodies(1)
-	Dim oProfile As Profile
-	If oBody.CreatedByFeature.Name.Contains("::") Then
-		Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
-		If oDriveParts.Count = 0 Then MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
-		Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
-		Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
-		Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
-		oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
-		Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
-		For Each oBodyRef As SurfaceBody In oGroundDef.SurfaceBodies
-			If oBodyRef.Name <> oBodyName Then Continue For
-			Dim oFeat As PartFeature = oGroundDef.Features(oBodyRef.CreatedByFeature.Name)
-			If oFeat.Type = 83915776 Then
-				Dim BrowserPane As BrowserPane = oDerPart.BrowserPanes("Model")
-				oFeat = GetParentFeature(BrowserPane.TopNode.BrowserNodes(3).BrowserNodes, oBodyName)
-				
-			End If
-			Try : oProfile = oFeat.Profile
-			Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
-			End Try
-		Next		
-	Else
-		Try : oProfile = oBody.CreatedByFeature.Profile
-		Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Exit Sub
-		End Try
-	End If
+	Dim oPDoc As PartDocument = TryCast(oInvApp.ActiveDocument, PartDocument)
+	If oPDoc Is Nothing Then Exit Sub
+	Dim oProfile As Profile = GetProfileInPart(oPDoc.ComponentDefinition)
+	If oProfile Is Nothing Then Exit Sub
 	Dim dIxx, dIyy, dIzz, dIxy, dIyz, dIxz, dIx, dIy, dIz, dKxx, dKyy, dKzz As Double
 	Dim oRegProps As RegionProperties = oProfile.RegionProperties
 	Dim oBox As Box2d = GetRangeBoxForSketch(oProfile(1))
@@ -39,7 +11,6 @@
 	oRegProps.Accuracy = AccuracyEnum.kMedium
 	Logger.Info(" Area = " & Round(oRegProps.Area, 3) & " cm2")
 	Logger.Info(" Perimeter = " & Round(oRegProps.Perimeter, 3) & " cm")
-	oRegProps.CentroidMomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
 	Dim dMinDist As Double = oInvApp.MeasureTools.GetMinimumDistance(oBox.MinPoint, oRegProps.Centroid)
 	Dim dMaxDist As Double = oInvApp.MeasureTools.GetMinimumDistance(oBox.MaxPoint, oRegProps.Centroid)
 	Dim z0_X, z0_Y As Double
@@ -52,31 +23,80 @@
 	End If
 	Logger.Info(" Z0(X) = " & Round(z0_X, 5) & " cm")
 	Logger.Info(" Z0(Y) = " & Round(z0_Y, 5) & " cm")
-	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
-	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
+'	oRegProps.CentroidMomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
+'	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
+'	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
 '	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
-	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
+'	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
 '	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
 '	Logger.Info(" Ixz = " & Round(dIxz, 5) & " cm")
 	oRegProps.MomentsOfInertia(dIxx, dIyy, dIzz, dIxy, dIyz, dIxz)
-	Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
-	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
+	oRegProps.PrincipalMomentsOfInertia(dIx, dIy, dIz)
+	oRegProps.RadiusOfGyration(dKxx, dKyy, dKzz)
+	If dIxx <> dIx then Logger.Info(" Ixx = " & Round(dIxx, 5) & " cm^4")
+'	Logger.Info(" Iyy = " & Round(dIyy, 5) & " cm^4")
 '	Logger.Info(" Izz = " & Round(dIzz, 5) & " cm")
-	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
+'	Logger.Info(" Ixy = " & Round(dIxy, 5) & " cm")
 '	Logger.Info(" Iyz = " & Round(dIyz, 5) & " cm")
 '	Logger.Info(" Ixz = " & Round(dIxz, 5) & " cm")
-	oRegProps.PrincipalMomentsOfInertia(dIx, dIy, dIz)
 	Logger.Info(" Ix = " & Round(dIx, 5) & " cm^4")
 	Logger.Info(" Iy = " & Round(dIy, 5) & " cm^4")
 '	Logger.Info(" Iz = " & Round(dIz, 5) & " cm^4")
-	oRegProps.RadiusOfGyration(dKxx, dKyy, dKzz)
 	Logger.Info(" Kxx = " & Round(dKxx, 5) & " cm")
 	Logger.Info(" Kyy = " & Round(dKyy, 5) & " cm")
 '	Logger.Info(" Kzz = " & Round(dKzz, 5) & " cm^3")
-	Logger.Info(" Rotation Angle = " & Round(oRegProps.RotationAngle, 5) & " degr")
+'	Logger.Info(" Rotation Angle = " & Round(oRegProps.RotationAngle, 5) & " degr")
 End Sub
 
 Dim oInvApp As Inventor.Application
+
+Private Function GetProfileInPart(ByVal oDef As PartComponentDefinition) As Profile
+	Dim oSketches As PlanarSketches = oDef.Sketches
+	Dim oBodies As SurfaceBodies = oDef.SurfaceBodies
+	Dim oBody As SurfaceBody
+	Dim oProfile As Profile
+	If oBodies.Count = 0 Then
+		If oSketches.Count = 0 Then
+			MessageBox.Show("You don`t have a sketch and a body.", "Error!") : Return Nothing
+		Else
+			oProfile = oInvApp.CommandManager.Pick(SelectionFilterEnum.kSketchProfileFilter, "Select Profile in Sketch...")
+			If oProfile Is Nothing Then MessageBox.Show("You don`t select a profile.", "Error!") : Return Nothing
+		End If 
+	Else
+		If oBodies.Count = 1 Then
+			oBody = oDef.SurfaceBodies(1)
+		Else
+			oBody = oInvApp.CommandManager.Pick(SelectionFilterEnum.kPartBodyFilter, "Select Body...")
+			If oBody Is Nothing Then MessageBox.Show("You don`t select a body.", "Error!") : Return Nothing
+		End If
+		If oBody.CreatedByFeature.Name.Contains("::") Then
+			Dim oDriveParts As DerivedPartComponents = oDef.ReferenceComponents.DerivedPartComponents
+			If oDriveParts.Count = 0 Then MessageBox.Show("Failed to get profile of sketch.", "Error!") : Return Nothing
+			Dim oDrivePart As DerivedPartComponent = oDriveParts.Item(1)
+			Dim oDerPart As Document = oDrivePart.ReferencedDocumentDescriptor.ReferencedDocument
+			Dim oBodyName As String = oDrivePart.SolidBodies.Item(1).Name
+			oBodyName = oBodyName.Substring(0, oBodyName.IndexOf("::"))
+			Dim oGroundDef As PartComponentDefinition = oDerPart.ComponentDefinition
+			For Each oBodyRef As SurfaceBody In oGroundDef.SurfaceBodies
+				If oBodyRef.Name <> oBodyName Then Continue For
+				Dim oFeat As PartFeature = oGroundDef.Features(oBodyRef.CreatedByFeature.Name)
+				If oFeat.Type = 83915776 Then
+					Dim BrowserPane As BrowserPane = oDerPart.BrowserPanes("Model")
+					oFeat = GetParentFeature(BrowserPane.TopNode.BrowserNodes(3).BrowserNodes, oBodyName)
+					
+				End If
+				Try : oProfile = oFeat.Profile
+				Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Return Nothing
+				End Try
+			Next		
+		Else
+			Try : oProfile = oBody.CreatedByFeature.Profile
+			Catch : MessageBox.Show("Failed to get profile of sketch.", "Error!") : Return Nothing
+			End Try
+		End If
+	End If
+	Return oProfile
+End Function
 
 Private Function GetRangeBoxForSketch(ByVal oPath As ProfilePath) As Box2d	
 	Dim oTG As TransientGeometry = oInvApp.TransientGeometry

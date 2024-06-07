@@ -36,12 +36,12 @@
 	oDef.ModelStates(oActState).Activate()
 	
 	Dim oUserParams As UserParameters = oDef.Parameters.UserParameters
-	
+
 	Try : oUserParams("Довжина").Value = lengths(0) : Catch : oUserParams.AddByValue("Довжина", lengths(0), uom.LengthUnits) : End Try
 	Try : oUserParams("Висота").Value = lengths(1) : Catch : oUserParams.AddByValue("Висота", lengths(1), uom.LengthUnits) : End Try
-	Try : oUserParams("Ширина").Value = lengths(2) : Catch : oUserParams.AddByValue("Ширина", lengths(2), uom.LengthUnits) : End Try
+	Try : oUserParams("Ширина").Value = lengths(1) : Catch : oUserParams.AddByValue("Ширина", lengths(1), uom.LengthUnits) : End Try
 	Try : oUserParams("Товщина").Value = dThick : Catch : oUserParams.AddByValue("Товщина", dThick, uom.LengthUnits) : End Try
-	Area = (oBody.Volume(0.001) / dThick) : Area_Zag = lengths(1) * lengths(2)
+	Area = (oBody.Volume(0.001) / dThick) : Area_Zag = lengths(0) * lengths(1)
 	Try : oUserParams("Area_1").Value = Area : Catch : oUserParams.AddByValue("Area_1", Area, "m m") : End Try
 	Try : oUserParams("Area_Zag_1").Value = Area_Zag : Catch : oUserParams.AddByValue("Area_Zag_1", Area_Zag, "m m") : End Try
 	
@@ -154,34 +154,40 @@ End Function
 
 Private Function GetLengthOnVector(ByVal oVector As Vector, ByVal minBox As OrientedBox)
 	' (0)L/MAX, (1)H/MID, (2)W/MIN
-	If minBox.DirectionOne.IsParallelTo(oVector, 0.001) Then
-		lengths(0) = minBox.DirectionOne.Length
-		If minBox.DirectionTwo.Length <= minBox.DirectionThree.Length Then
-			lengths(2) = minBox.DirectionTwo.Length
-			lengths(1) = minBox.DirectionThree.Length
-		Else
-			lengths(2) = minBox.DirectionThree.Length
-			lengths(1) = minBox.DirectionTwo.Length
-		End If
-	Else If minBox.DirectionTwo.IsParallelTo(oVector, 0.001) Then
-		lengths(0) = minBox.DirectionTwo.Length
-		If minBox.DirectionOne.Length <= minBox.DirectionThree.Length Then
-			lengths(2) = minBox.DirectionOne.Length
-			lengths(1) = minBox.DirectionThree.Length
-		Else
-			lengths(2) = minBox.DirectionThree.Length
-			lengths(1) = minBox.DirectionOne.Length
-		End If
-	Else If minBox.DirectionThree.IsParallelTo(oVector, 0.001) Then
-		lengths(0) = minBox.DirectionThree.Length
-		If minBox.DirectionTwo.Length <= minBox.DirectionOne.Length Then
-			lengths(2) = minBox.DirectionTwo.Length
-			lengths(1) = minBox.DirectionOne.Length
-		Else
-			lengths(2) = minBox.DirectionOne.Length
-			lengths(1) = minBox.DirectionTwo.Length
-		End If
-	End If
+		Dim dSize As New List(Of Double)
+		dSize.AddRange({minBox.DirectionOne.Length, minBox.DirectionTwo.Length, minBox.DirectionThree.Length})
+		dSize.Sort()
+		lengths(0) = dSize(2)
+		lengths(1) = dSize(1)
+		lengths(2) = dSize(0)
+'	If minBox.DirectionOne.IsParallelTo(oVector, 0.001) Then
+'		lengths(0) = minBox.DirectionOne.Length
+'		If minBox.DirectionTwo.Length <= minBox.DirectionThree.Length Then
+'			lengths(2) = minBox.DirectionTwo.Length
+'			lengths(1) = minBox.DirectionThree.Length
+'		Else
+'			lengths(2) = minBox.DirectionThree.Length
+'			lengths(1) = minBox.DirectionTwo.Length
+'		End If
+'	Else If minBox.DirectionTwo.IsParallelTo(oVector, 0.001) Then
+'		lengths(0) = minBox.DirectionTwo.Length
+'		If minBox.DirectionOne.Length <= minBox.DirectionThree.Length Then
+'			lengths(2) = minBox.DirectionOne.Length
+'			lengths(1) = minBox.DirectionThree.Length
+'		Else
+'			lengths(2) = minBox.DirectionThree.Length
+'			lengths(1) = minBox.DirectionOne.Length
+'		End If
+'	Else If minBox.DirectionThree.IsParallelTo(oVector, 0.001) Then
+'		lengths(0) = minBox.DirectionThree.Length
+'		If minBox.DirectionTwo.Length <= minBox.DirectionOne.Length Then
+'			lengths(2) = minBox.DirectionTwo.Length
+'			lengths(1) = minBox.DirectionOne.Length
+'		Else
+'			lengths(2) = minBox.DirectionOne.Length
+'			lengths(1) = minBox.DirectionTwo.Length
+'		End If
+'	End If
 End Function
 
 Private Function GetThickFromMaxFace(ByVal oBody As SurfaceBody) As Double

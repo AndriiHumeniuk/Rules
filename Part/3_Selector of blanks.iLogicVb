@@ -98,6 +98,8 @@
 	'[ Лист
 		Case "ДСТУ 8540"
 			iPropValSumSub = "Б-ПН-" & Товщ_R & ""
+		Case "EN 10131"
+			iPropValSumSub = "Б-ПН-" & Товщ_R & ""
 		Case "ДСТУ 8783"
 			iPropValSumSub = "В-К-ПУ-" & Товщ_R & ""
 			If RevNumb = "Лист ромб" Then
